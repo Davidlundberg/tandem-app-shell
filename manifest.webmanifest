@@ -1,0 +1,17 @@
+{
+  "name": "Tandem",
+  "short_name": "Tandem",
+  "description": "Award seats for two, watched from the cloud.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f7f3",
+  "theme_color": "#27477a",
+  "icons": [
+    { "src": "static/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "static/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "static/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

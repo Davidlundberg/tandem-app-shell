@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tandem</title>
+<meta name="description" content="Award seats for two, watched from the cloud.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tandem">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f7f7f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101319" media="(prefers-color-scheme: dark)">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<!-- CSP: the sha256 value is the one inline script (id="tandem-js"). Any edit to that script changes
+     its hash; tools/publish_shell.sh refuses to publish until it matches and prints the right value.
+     connect-src is the Supabase project only: sign-in and the travel-api function. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https://umimaxkucnugmkifenyg.supabase.co; script-src https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js 'sha256-65qvEyPTfiA5nJbtTqMgJYyp/vv4ypsFyVPSKJYCynQ='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="static/icon.svg" type="image/svg+xml">
+<link rel="icon" href="static/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="static/icon-180.png">
+<style>
+/* Tandem shell. Tokens, type and components come from the approved design mockup:
+   indigo on a cool paper ground; green / amber / red are semantic only.
+   Light and dark follow the system setting. There is no manual theme switch. */
+@font-face { font-family: 'Archivo'; src: url(static/fonts/archivo-latin.woff2) format('woff2'); font-weight: 400 800; font-stretch: 62% 125%; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Hanken Grotesk'; src: url(static/fonts/hanken-grotesk-latin.woff2) format('woff2'); font-weight: 400 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url(static/fonts/jetbrains-mono-latin.woff2) format('woff2'); font-weight: 400 600; font-style: normal; font-display: swap; }
+:root {
+  color-scheme: light;
+  --page: #e7e8e3;
+  --bg: #f7f7f3;
+  --subtle: #eeeee8;
+  --card: #ffffff;
+  --ink: #14171d;
+  --ink-2: #464c57;
+  --muted: #646a76;
+  --line: #e0e1da;
+  --line-2: #c9cbc2;
+  --accent: #27477a;
+  --accent-solid: #27477a;
+  --accent-hover: #1c3762;
+  --on-accent: #ffffff;
+  --accent-wash: rgba(39, 71, 122, 0.09);
+  --full: #0a7650;
+  --full-solid: #0a7650;
+  --on-full: #ffffff;
+  --full-wash: #e1f1e9;
+  --check: #8f5300;
+  --check-wash: #fbefd8;
+  --danger: #b8322a;
+  --danger-wash: #fae5e1;
+  --booked-bg: #14171d;
+  --booked-ink: #ffffff;
+  --hatch: #e2e2db;
+  --scrim: rgba(10, 14, 22, 0.42);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 3px 10px rgba(16, 24, 40, 0.05);
+  --shadow-lift: 0 18px 50px rgba(16, 24, 40, 0.22), 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow-sheet: 0 -14px 44px rgba(16, 24, 40, 0.20);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --f-display: 'Archivo', 'Arial Narrow', system-ui, sans-serif;
+  --f-body: 'Hanken Grotesk', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #07090d;
+    --bg: #101319;
+    --subtle: #171b22;
+    --card: #1a1f27;
+    --ink: #eef0f4;
+    --ink-2: #b6bcc7;
+    --muted: #8d95a3;
+    --line: #283039;
+    --line-2: #3a434f;
+    --accent: #a2bdf0;
+    --accent-solid: #a2bdf0;
+    --accent-hover: #c0d3f6;
+    --on-accent: #0c1222;
+    --accent-wash: rgba(162, 189, 240, 0.13);
+    --full: #52d3a2;
+    --full-solid: #52d3a2;
+    --on-full: #062117;
+    --full-wash: rgba(82, 211, 162, 0.13);
+    --check: #f1b650;
+    --check-wash: rgba(241, 182, 80, 0.13);
+    --danger: #ff8d80;
+    --danger-wash: rgba(255, 141, 128, 0.13);
+    --booked-bg: #eef0f4;
+    --booked-ink: #101319;
+    --hatch: #232a33;
+    --scrim: rgba(0, 0, 0, 0.58);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 3px 10px rgba(0, 0, 0, 0.25);
+    --shadow-lift: 0 18px 50px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-sheet: 0 -14px 44px rgba(0, 0, 0, 0.55);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+body.sheet-open { overflow: hidden; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[tabindex="-1"]:focus { outline: none; }
+h1, h2, h3, h4, p { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+.num { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- App frame ---------- */
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.app-main { flex: 1 0 auto; display: flex; flex-direction: column; min-width: 0; }
+.app-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) var(--gutter-r) 10px var(--gutter-l);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); flex: none; }
+.brand-mark { width: 24px; height: 20px; flex: none; }
+.wordmark {
+  font-family: var(--f-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.head-watch { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.health { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); min-height: 20px; min-width: 0; }
+.health-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.health-led {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--full-solid);
+  box-shadow: 0 0 0 3px var(--full-wash);
+  animation: breathe 2.8s var(--ease) infinite;
+}
+.health-blind { color: var(--danger); font-weight: 600; }
+.health-blind .health-led { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-wash); animation: none; }
+.health-warn { color: var(--check); font-weight: 600; }
+.health-warn .health-led { background: var(--check); box-shadow: 0 0 0 3px var(--check-wash); animation: none; }
+.health-paused .health-led { background: var(--muted); box-shadow: 0 0 0 3px var(--subtle); animation: none; }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 0 3px var(--full-wash); } 50% { box-shadow: 0 0 0 6px var(--full-wash); } }
+
+.view { flex: 1 0 auto; padding: 18px var(--gutter-r) 28px var(--gutter-l); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.view-body { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.view-title {
+  font-family: var(--f-display);
+  font-stretch: 104%;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.eyebrow { font: 500 11px/1.2 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.title-block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 12px; font-weight: 500;
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.chip b { font-weight: 700; color: var(--ink); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.section-head h2, .section-head h3 { font-size: 15px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.section-head span { font-size: 12px; color: var(--muted); text-align: right; }
+
+.tabbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+}
+.tab-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 50px;
+  border: 0; background: none; cursor: pointer;
+  color: var(--muted);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.01em;
+  border-radius: var(--r-md);
+}
+.tab-btn svg { width: 22px; height: 22px; }
+.tab-btn[aria-current="page"] { color: var(--accent); }
+
+.credit {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0; overflow-wrap: anywhere;
+}
+.credit a { color: var(--accent); font-weight: 600; text-decoration: none; }
+@media (hover: hover) { .credit a:hover { text-decoration: underline; } }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 0 14px;
+  border-radius: var(--r-md);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease), transform 120ms var(--ease);
+  white-space: nowrap;
+  min-width: 0;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent-solid); color: var(--on-accent); }
+@media (hover: hover) { .btn-primary:hover { background: var(--accent-hover); } }
+.btn-quiet { background: var(--card); color: var(--accent); border-color: var(--line-2); }
+@media (hover: hover) { .btn-quiet:hover { border-color: var(--accent); } }
+.btn-danger { background: var(--danger); color: var(--card); }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btn-wide { width: 100%; }
+.ext { font-size: 12px; opacity: 0.8; }
+.text-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: none; cursor: pointer;
+  min-height: 44px; min-width: 44px; padding: 0 4px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2);
+  text-decoration: none; white-space: nowrap;
+}
+/* Hover styles only where there is a real pointer: on a phone a tapped control would otherwise stay "hovered". */
+@media (hover: hover) { .text-btn:hover { color: var(--accent); } }
+.text-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Pair ticket ---------- */
+.pair-list { display: flex; flex-direction: column; gap: 14px; }
+.pair-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 160ms var(--ease);
+}
+@media (hover: hover) { .pair-card:hover { border-color: var(--line-2); } }
+.pair-card.is-stale { opacity: 0.78; }
+.pair-top { display: flex; align-items: center; gap: 8px; padding: 12px 14px 0; flex-wrap: wrap; }
+.rank { font: 600 12px/1 var(--f-mono); color: var(--muted); }
+.state-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700;
+  padding: 4px 9px; border-radius: var(--r-pill);
+}
+.state-full { background: var(--full-wash); color: var(--full); }
+.state-check { background: var(--check-wash); color: var(--check); }
+.state-half { background: var(--subtle); color: var(--ink-2); border: 1px dashed var(--line-2); }
+.fresh-chip {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 11px/1.2 var(--f-mono);
+  color: var(--ink-2);
+}
+.fresh-led { width: 7px; height: 7px; border-radius: 50%; background: var(--full-solid); flex: none; }
+.fresh-aging .fresh-led { background: var(--check); }
+.fresh-aging { color: var(--check); }
+.fresh-stale .fresh-led { background: var(--muted); }
+.fresh-stale { color: var(--muted); }
+
+.leg-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  padding: 12px 14px;
+  align-items: start;
+}
+.leg-dir {
+  padding-top: 3px;
+  font-family: var(--f-display); font-stretch: 125%; font-weight: 700;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.leg-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.leg-date { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.route {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--f-display); font-stretch: 125%; font-weight: 700;
+  font-size: 21px; letter-spacing: 0.02em; line-height: 1.15;
+  min-width: 0;
+}
+.route-line { flex: 1; max-width: 70px; min-width: 24px; height: 2px; background: var(--line-2); position: relative; border-radius: 2px; }
+.route-line::before, .route-line::after {
+  content: ""; position: absolute; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--line-2);
+}
+.route-line::before { left: -1px; }
+.route-line::after { right: -1px; }
+.route-stop { position: absolute; left: 50%; top: -4px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--card); border: 2px solid var(--muted); }
+/* The flight line runs under the route and the seat column, so it rarely has to wrap on a phone. */
+.leg-meta { grid-column: 2 / -1; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.leg-times { white-space: nowrap; }
+.leg-meta sup { font-size: 9px; }
+.leg-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 2px; }
+.leg-cost { font: 600 13px/1 var(--f-mono); color: var(--ink); }
+.leg-cost small { font-weight: 400; color: var(--muted); font-size: 11px; }
+.leg-row.leg-pending .leg-main { color: var(--muted); }
+.leg-pending-text { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+.leg-row.leg-booked .route, .leg-row.leg-booked .leg-date { color: var(--muted); }
+.booked-tag {
+  font: 600 10px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 7px; border-radius: var(--r-pill);
+  background: var(--booked-bg); color: var(--booked-ink);
+  flex: none;
+}
+
+.perf { position: relative; height: 0; border-top: 1.5px dashed var(--line-2); margin: 0 14px; }
+.perf::before, .perf::after {
+  content: ""; position: absolute; top: -10px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--line);
+}
+.perf::before { left: -25px; }
+.perf::after { right: -25px; }
+
+.seat-glyph { display: inline-flex; align-items: center; gap: 3px; font: 600 11.5px/1 var(--f-mono); color: var(--ink-2); white-space: nowrap; }
+.seat-glyph i { display: block; width: 9px; height: 12px; border-radius: 3px 3px 2px 2px; background: var(--accent-solid); }
+.seat-glyph i + i { margin-right: 4px; }
+.seat-unknown { color: var(--check); }
+.seat-unknown i { background: transparent; border: 1.5px dashed var(--check); }
+.seat-short i + i { background: transparent; border: 1.5px solid var(--line-2); }
+.seat-watching { color: var(--muted); }
+
+.cost-block {
+  margin: 0 14px;
+  padding: 12px 0 10px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: end;
+}
+.cost-total { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.cost-big { font-family: var(--f-display); font-stretch: 112%; font-weight: 800; font-size: 28px; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.cost-unit { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.cost-tax { font-size: 12px; color: var(--muted); }
+.cost-pp { text-align: right; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.cost-pp b { display: block; font: 600 14px/1.2 var(--f-mono); color: var(--ink); }
+.fund-line { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-top: 4px; }
+.fund-line span { min-width: 0; overflow-wrap: anywhere; }
+.fund-line .prog { font-weight: 700; color: var(--accent); }
+.fund-sep { color: var(--line-2); }
+
+.pair-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 2px 14px 4px; }
+.pair-actions.one-col { grid-template-columns: 1fr; }
+.pair-actions.in-sheet { padding: 0; }
+.pair-more { display: flex; justify-content: space-between; gap: 4px; padding: 0 10px 4px; border-top: 1px solid var(--line); margin-top: 8px; flex-wrap: wrap; }
+.pair-more.in-sheet { padding: 0; margin-top: 0; }
+/* The watcher's one-line note about a pair: quiet, under the legs. */
+.pair-note { margin: 0 14px; padding: 0 0 10px 48px; font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.pair-note::before { content: "Note · "; font: 500 10.5px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.pair-note.in-sheet { margin: 0; padding: 0; }
+
+/* ---------- Banners / panels ---------- */
+.banner { border-radius: var(--r-md); padding: 12px 14px; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.banner strong { font-size: 14px; }
+.banner-danger { background: var(--danger-wash); color: var(--danger); }
+.banner-danger p { color: var(--ink-2); }
+.banner-warn { background: var(--check-wash); color: var(--check); }
+.banner-warn p { color: var(--ink-2); }
+.banner-booked { background: var(--card); border: 1px solid var(--line); }
+.banner-booked strong { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.banner-booked p { color: var(--ink-2); }
+.banner-booked .text-btn { align-self: flex-start; margin: 0 0 -8px -4px; }
+.banner-paused { background: var(--subtle); border: 1px dashed var(--line-2); color: var(--ink-2); }
+
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel h3 { font-size: 15px; font-weight: 700; }
+.panel p { color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
+.fine { font-size: 12px; color: var(--muted); }
+.panel p.fine { font-size: 12px; color: var(--muted); }
+.empty-big { font-family: var(--f-display); font-stretch: 108%; font-weight: 700; font-size: 20px; line-height: 1.2; }
+.panel p.empty-big { font-size: 20px; color: var(--ink); }
+.best-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.best-cell { background: var(--subtle); border-radius: var(--r-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.best-cell .eyebrow { font-size: 10px; }
+.best-val { font: 600 17px/1.2 var(--f-mono); }
+.best-sub { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+
+.progress-row { display: grid; grid-template-columns: 64px 1fr; gap: 4px 10px; align-items: center; font-size: 13px; }
+.progress-label { font-weight: 600; color: var(--ink-2); }
+.bar { height: 8px; border-radius: var(--r-pill); background: var(--subtle); overflow: hidden; border: 1px solid var(--line); }
+.bar-fill { display: block; height: 100%; background: var(--accent-solid); border-radius: var(--r-pill); }
+.progress-note { grid-column: 2; font-size: 12px; color: var(--muted); }
+
+/* ---------- Loading skeleton ---------- */
+.skel { background: var(--line); border-radius: var(--r-sm); position: relative; overflow: hidden; }
+.skel::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--card), transparent);
+  opacity: 0.6; transform: translateX(-100%);
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+.skel-line { height: 12px; }
+.skel-title { height: 26px; width: 62%; }
+.skel-pill { height: 22px; width: 38%; border-radius: var(--r-pill); }
+.skel-route { height: 24px; width: 70%; }
+.skel-cost { height: 28px; width: 44%; }
+.skel-btn { height: 44px; border-radius: var(--r-md); }
+.skel-w30 { width: 30%; } .skel-w50 { width: 50%; } .skel-w80 { width: 80%; }
+.skel-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ---------- Calendar ---------- */
+.dir-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; background: var(--subtle); border: 1px solid var(--line); border-radius: var(--r-md); }
+.dir-btn { border: 0; background: none; border-radius: 8px; min-height: 44px; padding: 4px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; }
+.dir-btn b { font-size: 14px; }
+.dir-btn small { font-size: 11px; color: var(--muted); }
+.dir-btn[aria-selected="true"] { background: var(--card); box-shadow: var(--shadow-card); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 12px; color: var(--ink-2); margin: 0; padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 16px; height: 16px; border-radius: 5px; display: inline-block; border: 1px solid var(--line); flex: none; }
+.swatch-plain { background: var(--card); }
+.months { display: flex; flex-direction: column; gap: 18px; }
+.month { display: flex; flex-direction: column; gap: 8px; }
+.month-name { font-family: var(--f-display); font-stretch: 112%; font-weight: 700; font-size: 15px; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.wd { text-align: center; font: 500 10px/1 var(--f-mono); color: var(--muted); padding-bottom: 2px; }
+.cal-day {
+  min-height: 48px; border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 2px 0; cursor: pointer; min-width: 0; overflow: hidden;
+}
+.cal-day .dn { font-size: 13px; font-weight: 600; line-height: 1; }
+.cal-day .dv { font: 600 10.5px/1 var(--f-mono); color: var(--muted); white-space: nowrap; }
+.cal-day.ds-pad { border: 0; background: none; cursor: default; }
+.cal-day.ds-out { border: 0; background: none; cursor: default; }
+.cal-day.ds-out .dn { color: var(--line-2); font-weight: 500; }
+.ds-two { background: var(--full-solid); border-color: var(--full-solid); }
+.ds-two .dn, .cal-day.ds-two .dv { color: var(--on-full); }
+.ds-one { background: var(--full-wash); border-color: transparent; }
+.cal-day.ds-one .dv { color: var(--full); }
+.ds-unknown { border: 1.5px dashed var(--check); background: var(--check-wash); }
+.cal-day.ds-unknown .dv { color: var(--check); }
+.ds-closed { background: repeating-linear-gradient(135deg, var(--hatch) 0 3px, transparent 3px 7px), var(--card); }
+.ds-closed .dn { color: var(--muted); }
+.ds-booked { background: var(--booked-bg); border-color: var(--booked-bg); }
+.ds-booked .dn, .cal-day.ds-booked .dv { color: var(--booked-ink); }
+.ds-unchecked { background: var(--subtle); border: 1px dotted var(--line-2); }
+.ds-unchecked .dn { color: var(--ink-2); font-weight: 500; }
+.ds-muted { background: var(--subtle); border-color: transparent; }
+.ds-muted .dn { color: var(--muted); font-weight: 500; }
+.cal-day.is-picked { outline: 2.5px solid var(--accent); outline-offset: 1px; }
+.day-detail { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.day-detail h4 { font-size: 14px; font-weight: 700; }
+.day-detail p { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.is-stale-cal { opacity: 0.78; }
+
+/* ---------- Watch ---------- */
+.def { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 12px; font-size: 14px; margin: 0; }
+.def dt { color: var(--muted); font-size: 13px; }
+.def dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.nowrap { white-space: nowrap; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.switch-row b { font-size: 15px; }
+.switch-row small { display: block; font-size: 12px; color: var(--muted); }
+/* The button is the 44px touch target; the 32px track and its knob are drawn inside it. */
+.switch { width: 52px; height: 44px; padding: 0; border: 0; background: none; position: relative; cursor: pointer; flex: none; border-radius: var(--r-pill); }
+.switch::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 32px; border-radius: var(--r-pill); background: var(--line-2); transition: background 180ms var(--ease); }
+.switch::after { content: ""; position: absolute; top: 9px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 220ms var(--ease); }
+.switch[aria-checked="true"]::before { background: var(--full-solid); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.switch[disabled] { opacity: 0.6; cursor: progress; }
+.runs { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; align-items: end; height: 34px; }
+.run-tick { display: block; height: 100%; border-radius: 3px; background: var(--full-solid); opacity: 0.85; }
+.run-tick.run-blind { background: var(--danger); opacity: 1; }
+.run-tick.run-fail { background: var(--danger); opacity: 1; height: 55%; }
+.run-tick.run-none { background: var(--line-2); height: 30%; opacity: 1; }
+.runs-axis { display: flex; justify-content: space-between; font: 400 10px/1 var(--f-mono); color: var(--muted); }
+.meter { position: relative; height: 12px; border-radius: var(--r-pill); background: var(--subtle); border: 1px solid var(--line); }
+.meter-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: var(--r-pill); background: var(--accent-solid); }
+.meter-cap { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--ink); border-radius: 2px; }
+.meter-legend { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.meter-legend b { color: var(--ink); font-family: var(--f-mono); font-weight: 600; }
+.stat-list { display: flex; flex-direction: column; }
+.stat-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.stat-row:first-child { border-top: 0; padding-top: 0; }
+.stat-key { color: var(--muted); flex: none; max-width: 45%; }
+.stat-val { text-align: right; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.stat-bad { color: var(--danger); font-weight: 600; }
+.stat-warn { color: var(--check); font-weight: 600; }
+.prio { font: 600 10px/1.3 var(--f-mono); padding: 3px 6px; border-radius: 4px; background: var(--subtle); color: var(--ink-2); max-width: 60%; text-align: right; align-self: center; }
+.prio-loud { background: var(--full-wash); color: var(--full); }
+.tier-value { font-family: var(--f-display); font-stretch: 108%; font-weight: 700; font-size: 20px; line-height: 1.2; overflow-wrap: anywhere; }
+.tier-valid { font-size: 14px; color: var(--ink-2); }
+.tier-valid.tier-unset { color: var(--check); font-weight: 600; }
+.tier-valid.tier-lapsed { color: var(--danger); font-weight: 600; }
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.account-row span { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Sign in ---------- */
+.signin { flex: 1 0 auto; padding: calc(56px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 28px; }
+.signin-hero { display: flex; flex-direction: column; gap: 14px; }
+.signin-hero .brand-mark { width: 52px; height: 44px; color: var(--accent); }
+.signin-word { font-family: var(--f-display); font-stretch: 125%; font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: 0.005em; }
+.signin-tag { font-size: 16px; color: var(--ink-2); max-width: 28ch; }
+.signin-form { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; border: 0; margin: 0; padding: 0; }
+.field label, .field legend { font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 0; }
+.input {
+  font: 400 16px/1.2 var(--f-body);
+  min-height: 48px; padding: 0 14px;
+  border-radius: var(--r-md); border: 1px solid var(--line-2);
+  background: var(--card); color: var(--ink); width: 100%; min-width: 0;
+}
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.input[disabled] { background: var(--subtle); color: var(--ink-2); }
+.code-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.code-row .input { text-align: center; padding: 0; font: 600 20px/1 var(--f-mono); }
+.signin-msg { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+/* Empty, it stays in the accessibility tree (it is a live region) but takes no room. */
+.signin-msg:empty { margin-top: -14px; }
+.signin-msg.is-error { color: var(--danger); font-weight: 600; }
+.signin-links { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.signin-foot { margin-top: auto; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+.signin-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+/* ---------- Sheet + toast ---------- */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 20; animation: fadeIn 200ms var(--ease) both; }
+.sheet-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+  max-width: 520px; margin: 0 auto;
+  max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--card); color: var(--ink);
+  border-radius: 22px 22px 0 0;
+  box-shadow: var(--shadow-sheet);
+  padding: 8px var(--gutter-r) calc(20px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
+  display: flex; flex-direction: column; gap: 14px;
+  animation: sheetUp 300ms var(--ease) both;
+}
+.sheet-panel:focus { outline: none; }
+.sheet-grip { width: 38px; height: 5px; border-radius: 3px; background: var(--line-2); margin: 2px auto 0; flex: none; }
+.sheet-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sheet-head .text-btn { margin-left: auto; flex: none; }
+.sheet-title { font-family: var(--f-display); font-stretch: 108%; font-weight: 700; font-size: 20px; min-width: 0; overflow-wrap: anywhere; }
+.sheet-panel > p { color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
+.sheet-panel > p.fine { font-size: 12px; color: var(--muted); }
+.flight-list { display: flex; flex-direction: column; gap: 6px; }
+.flight-item { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 2px 10px; font-size: 13.5px; }
+.flight-item b { font-family: var(--f-mono); font-weight: 600; font-size: 13px; }
+.flight-item span { color: var(--ink-2); overflow-wrap: anywhere; }
+.detail-leg { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.detail-leg:first-of-type { border-top: 0; padding-top: 0; }
+.detail-leg-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.detail-leg-head .eyebrow { color: var(--ink-2); }
+.seat-note { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.detail-leg .text-btn { align-self: flex-start; margin: -6px 0 -10px -4px; color: var(--accent); }
+.cost-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.cost-table th { text-align: right; font: 500 10.5px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0 0 8px; }
+.cost-table th:first-child, .cost-table td:first-child { text-align: left; }
+.cost-table td { text-align: right; padding: 6px 0; border-top: 1px solid var(--line); font-family: var(--f-mono); font-size: 13px; }
+.cost-table td:first-child { font-family: var(--f-body); color: var(--ink-2); }
+.cost-table tr.total td { font-weight: 700; color: var(--ink); border-top: 1.5px solid var(--ink); }
+.callout { background: var(--accent-wash); border-radius: var(--r-md); padding: 12px 14px; font-size: 13.5px; color: var(--ink); overflow-wrap: anywhere; }
+.option-list { display: flex; flex-direction: column; gap: 8px; }
+.option {
+  text-align: left; border: 1px solid var(--line-2); background: var(--card);
+  border-radius: var(--r-md); padding: 12px 14px; cursor: pointer; min-height: 52px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+@media (hover: hover) { .option:hover { border-color: var(--accent); } }
+.option[disabled] { opacity: 0.5; cursor: progress; }
+.option b { font-size: 14.5px; overflow-wrap: anywhere; }
+.option span { font-size: 12.5px; color: var(--muted); }
+.toast {
+  position: fixed; left: var(--gutter-l); right: var(--gutter-r); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  max-width: 488px; margin: 0 auto;
+  background: var(--ink); color: var(--bg);
+  border-radius: var(--r-md); padding: 12px 14px; font-size: 13.5px; line-height: 1.4;
+  box-shadow: var(--shadow-lift);
+  animation: toastIn 260ms var(--ease) both;
+  overflow-wrap: anywhere;
+}
+.toast small { display: block; opacity: 0.75; font-size: 12px; margin-top: 2px; }
+@keyframes sheetUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toastIn { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="app-head" id="app-head" hidden>
+    <div class="brand-row">
+      <span class="brand">
+        <svg class="brand-mark" viewBox="0 0 28 24" aria-hidden="true"><rect x="2" y="1" width="10" height="15" rx="3" fill="currentColor"/><rect x="16" y="1" width="10" height="15" rx="3" fill="currentColor"/><rect x="0.5" y="18.5" width="27" height="3.5" rx="1.75" fill="currentColor"/></svg>
+        <span class="wordmark">Tandem</span>
+      </span>
+      <span class="head-watch" id="head-watch"></span>
+    </div>
+    <div class="health health-paused" id="health" role="status"><span class="health-led" aria-hidden="true"></span><span class="health-text" id="health-text">Loading…</span></div>
+  </header>
+
+  <main class="app-main" id="main" tabindex="-1">
+
+    <section class="signin" id="screen-signin" aria-labelledby="signin-word" hidden>
+      <div class="signin-hero">
+        <svg class="brand-mark" viewBox="0 0 28 24" aria-hidden="true"><rect x="2" y="1" width="10" height="15" rx="3" fill="currentColor"/><rect x="16" y="1" width="10" height="15" rx="3" fill="currentColor"/><rect x="0.5" y="18.5" width="27" height="3.5" rx="1.75" fill="currentColor"/></svg>
+        <h1 class="signin-word" id="signin-word">Tandem</h1>
+        <p class="signin-tag">Two Polaris seats, both ways, at your price. Watched every hour from the cloud.</p>
+      </div>
+      <form class="signin-form" id="signin-form" novalidate>
+        <div class="field">
+          <label for="signin-email">Email</label>
+          <input class="input" id="signin-email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" required>
+        </div>
+        <fieldset class="field" id="code-step" hidden>
+          <legend id="code-legend">6-digit code from your email</legend>
+          <div class="code-row" id="code-row">
+            <input class="input" data-code-box="0" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" aria-label="Digit 1">
+            <input class="input" data-code-box="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 2">
+            <input class="input" data-code-box="2" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 3">
+            <input class="input" data-code-box="3" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 4">
+            <input class="input" data-code-box="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 5">
+            <input class="input" data-code-box="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 6">
+          </div>
+        </fieldset>
+        <p class="signin-msg" id="signin-msg" role="status"></p>
+        <button class="btn btn-primary btn-wide" id="signin-btn" type="submit">Email me a code</button>
+        <div class="signin-links" id="signin-links" hidden>
+          <button class="text-btn" type="button" data-act="resend-code">Send a new code</button>
+          <button class="text-btn" type="button" data-act="change-email">Use a different email</button>
+        </div>
+      </form>
+      <div class="signin-foot">
+        <span>Only your allowlisted address can sign in. Codes, not links: a link would open Safari instead of this Home Screen app.</span>
+        <span class="credit-line">Award data from <a href="https://seats.aero" target="_blank" rel="noopener">seats.aero</a>.</span>
+      </div>
+    </section>
+
+    <section class="view" id="screen-gate" hidden>
+      <div class="view-body" id="gate-body"></div>
+      <div class="credit" id="credit-gate"></div>
+    </section>
+
+    <section class="view" id="screen-pairs" hidden>
+      <div class="title-block" id="pairs-head"></div>
+      <div class="view-body" id="pairs-body"></div>
+      <div class="credit" id="credit-pairs"></div>
+    </section>
+
+    <section class="view" id="screen-dates" hidden>
+      <div class="title-block">
+        <span class="eyebrow">Every date in the window</span>
+        <h1 class="view-title" id="dates-title" tabindex="-1">Dates</h1>
+      </div>
+      <div class="view-body" id="dates-body"></div>
+      <div class="credit" id="credit-dates"></div>
+    </section>
+
+    <section class="view" id="screen-watch" hidden>
+      <div class="title-block">
+        <span class="eyebrow">What Tandem is doing</span>
+        <h1 class="view-title" id="watch-title" tabindex="-1">Watch &amp; health</h1>
+      </div>
+      <div class="view-body" id="watch-body"></div>
+      <div class="credit" id="credit-watch"></div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar" id="tabbar" aria-label="Tandem" hidden>
+    <button class="tab-btn" type="button" data-tab="pairs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4a1 1 0 0 1 1 1v9H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1z"/><path d="M15 4h4a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2h-4V5a1 1 0 0 1 1-1z"/><path d="M4 17.5h16M7 17.5V20M17 17.5V20"/></svg>
+      Pairs
+    </button>
+    <button class="tab-btn" type="button" data-tab="dates">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      Dates
+    </button>
+    <button class="tab-btn" type="button" data-tab="watch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12l5.5-5.5"/></svg>
+      Watch
+    </button>
+  </nav>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet-panel" id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"
+        integrity="sha384-3wY11tldQ5+yWqAvmTN4XtQvnjoTva0cV15O/O/O5NTtp0ivVopSzLOzsVXWZse9"></script>
+<script id="tandem-js">
+"use strict";
+/* ==========================================================================
+   Tandem shell. Generic app code only: sign-in, three tabs, sheets.
+   Everything that describes a trip (name, airports, dates, flights, prices,
+   health) arrives at runtime from GET /board. Nothing trip-specific may be
+   written into this file; tools/publish_shell.sh refuses to publish if it is.
+   The board lives in memory only. It is never written to localStorage.
+   ========================================================================== */
+var APP_VERSION = "0.1.0";            // lockstep with VERSION in sw.js
+var TANDEM_SUPABASE = {               // publishable key: public by design; the function checks the user
+  url: "https://umimaxkucnugmkifenyg.supabase.co",
+  key: "sb_publishable_1wJlFgMwGiOwb7-viFNfeg_qczcRsBx"
+};
+var API_BASE = TANDEM_SUPABASE.url + "/functions/v1/travel-api";
+var LS_AUTH = "tandem.auth.v1";       // own key: other apps share this origin
+var KEY_DAILY_CALLS = 1000;           // the seats.aero key's daily allowance: the call meter's fixed scale
+var REFRESH_MS = 5 * 60 * 1000;
+var FETCH_TIMEOUT_MS = 15000;
+var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
+
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ---------- formatting helpers ---------- */
+  var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
+  function num(v) { return typeof v === "number" && isFinite(v) ? v : null; }
+  function str(v) { return typeof v === "string" ? v : ""; }
+  function arr(v) { return Array.isArray(v) ? v : []; }
+  function obj(v) { return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isDate(s) { return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+  function toDate(iso) { var p = iso.split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+  function toIso(d) { return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()); }
+  function addDays(iso, n) { var d = toDate(iso); d.setUTCDate(d.getUTCDate() + n); return toIso(d); }
+  function fmtShort(iso) { if (!isDate(iso)) return ""; var d = toDate(iso); return MONTHS_SHORT[d.getUTCMonth()] + " " + d.getUTCDate(); }
+  function fmtDay(iso) { if (!isDate(iso)) return ""; return WEEKDAYS[toDate(iso).getUTCDay()] + " " + fmtShort(iso); }
+  function fmtLong(iso) { if (!isDate(iso)) return ""; return fmtDay(iso) + " " + toDate(iso).getUTCFullYear(); }
+  function fmtRange(a, b, withYear) {
+    if (!isDate(a) || !isDate(b)) return "";
+    var da = toDate(a), db = toDate(b);
+    var sameMonth = da.getUTCMonth() === db.getUTCMonth() && da.getUTCFullYear() === db.getUTCFullYear();
+    var out = a === b ? fmtShort(a) : fmtShort(a) + "–" + (sameMonth ? db.getUTCDate() : fmtShort(b));
+    return withYear ? out + " " + db.getUTCFullYear() : out;
+  }
+  function ts(iso) { if (typeof iso !== "string") return null; var t = Date.parse(iso); return isNaN(t) ? null : t; }
+  function fmtClock(t) { return new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); }
+  function fmtWhen(iso, nowT) {
+    var t = ts(iso); if (t == null) return "";
+    var d = new Date(t), n = new Date(nowT);
+    if (d.toDateString() === n.toDateString()) return fmtClock(t);
+    if (Math.abs(nowT - t) < 6 * 864e5) return WEEKDAYS[d.getDay()] + " " + fmtClock(t);
+    return MONTHS_SHORT[d.getMonth()] + " " + d.getDate() + ", " + fmtClock(t);
+  }
+  function agoText(min) {
+    if (min < 1) return "moments";
+    if (min < 60) return min + "m";
+    var h = Math.floor(min / 60), m = min % 60;
+    if (h < 48) return h + "h" + (m ? " " + m + "m" : "");
+    return Math.floor(h / 24) + "d";
+  }
+  function agoFrom(iso, nowT) { var t = ts(iso); return t == null ? "" : agoText(Math.max(0, Math.round((nowT - t) / 60000))); }
+  function kfmt(n) { return (Math.round(n / 100) / 10).toLocaleString("en-US") + "k"; }
+  function full(n) { return Math.round(n).toLocaleString("en-US"); }
+  function money(cents, cur) {
+    var v = (cents / 100).toFixed(2);
+    return !cur || cur === "USD" ? "$" + v : v + " " + esc(cur);
+  }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  /* Links are rendered only for these two hosts, over https, with no credentials in the URL. */
+  function safeUrl(u, host) {
+    if (typeof u !== "string" || !u) return null;
+    try {
+      var p = new URL(u);
+      if (p.protocol !== "https:" || p.hostname !== host || p.username || p.password || (p.port && p.port !== "443")) return null;
+      return p.href;
+    } catch (e) { return null; }
+  }
+
+  /* ---------- state (memory only) ---------- */
+  var S = {
+    screen: "gate",                    // signin | gate | app
+    gate: { kind: "loading", message: "" },
+    tab: "pairs", dir: "out",
+    picked: { out: null, back: null },
+    board: null, boardAt: 0,
+    net: "idle", netMsg: "",           // ok | offline | error
+    busy: false,
+    session: null,
+    signin: { step: "email", email: "", busy: false }
+  };
+  var sb = null;
+
+  /* ---------- board access ---------- */
+  function normalize(raw) {
+    if (!raw || typeof raw !== "object" || !raw.watch || typeof raw.watch !== "object" || !raw.health || typeof raw.health !== "object") return null;
+    var days = obj(raw.days);
+    return {
+      version: str(raw.version), now: str(raw.now),
+      attribution: obj(raw.attribution),
+      watch: raw.watch, health: raw.health,
+      pairs: arr(raw.pairs).filter(function (p) { return p && typeof p === "object"; }),
+      days: { out: arr(days.out).filter(dayOk), back: arr(days.back).filter(dayOk) }
+    };
+  }
+  function dayOk(d) { return d && typeof d === "object" && isDate(d.date); }
+  function nowOf(b) { return ts(b.now) || S.boardAt || Date.now(); }
+  function paxOf(w) { var n = num(w.pax); return n && n > 0 ? n : 2; }
+  function capK(w) { var n = num(w.cap_leg); return n ? kfmt(n) : ""; }
+  function legOf(v) { return v && typeof v === "object" && !Array.isArray(v) ? v : null; }
+  var HEALTH_STATES = { ok: 1, blind: 1, paused: 1, stale: 1, error: 1, setup: 1 };
+  /* One word for how far the board can be trusted. */
+  function modeOf(b) {
+    var hs = str(b.health.state);
+    if (b.watch.status === "paused" || hs === "paused") return "paused";
+    if (neverRan(b)) return "first";
+    if (hs === "blind") return "blind";
+    if (hs === "stale") return "stale";
+    if (!HEALTH_STATES[hs] || hs === "error") return "error";
+    if (needsSetup(b)) return "setup";
+    return "ok";
+  }
+  function needsSetup(b) { return b.health.state === "setup" || obj(b.health.delivery).configured === false; }
+  /* Before the watcher's first run there is no check to be late, wrong or empty: nothing has been looked at yet.
+     That is its own calm state, never a failure and never a finding. */
+  function neverRan(b) { return ts(b.health.last_run_at) == null && ts(b.health.last_ok_at) == null; }
+  /* "Clean" means the watcher's last reading can be read as the truth. Only then may the page say nothing was found. */
+  function isClean(b) { var m = modeOf(b); return (m === "ok" || m === "setup" || m === "paused") && !neverRan(b) && S.net === "ok"; }
+  function isDim(b) { var m = modeOf(b); return m === "blind" || m === "stale" || m === "error" || S.net !== "ok"; }
+  /* A seat count the page may show as a count: a positive number that was read for this trip itself.
+     A "sibling" count was read from another flight combination, so it is never shown as this trip's own. */
+  function ownSeats(leg) { var n = num(leg.seats); return n != null && n > 0 && leg.seats_src !== "sibling" && leg.likely_short !== true ? n : null; }
+
+  /* ---------- pieces ---------- */
+  function seatGlyph(leg, pax) {
+    var n = num(leg.seats), bars = '<i aria-hidden="true"></i><i aria-hidden="true"></i>';
+    if (leg.likely_short === true) {
+      var label = n != null && n > 0 && n < pax ? "likely " + n : (pax === 2 ? "likely 1" : "likely short");
+      return '<span class="seat-glyph seat-unknown" title="No count for this trip. Another trip on the same long flight is short.">' + bars + label + "</span>";
+    }
+    if (leg.seats_src === "sibling") return '<span class="seat-glyph seat-unknown" title="No count for this trip. The number on file was read from another flight combination.">' + bars + "unknown</span>";
+    if (n == null || n <= 0) return '<span class="seat-glyph seat-unknown" title="Seat count unknown">' + bars + "unknown</span>";
+    if (n < pax) return '<span class="seat-glyph seat-short" title="' + plural(n, "seat", "seats") + ' left at this price">' + bars + n + " left</span>";
+    return '<span class="seat-glyph" title="' + n + ' seats left at this price">' + bars + n + " left</span>";
+  }
+  function routeHtml(leg) {
+    var stop = num(leg.stops) > 0 ? '<span class="route-stop"></span>' : "";
+    return '<div class="route"><span>' + esc(leg.from) + '</span><span class="route-line" aria-hidden="true">' + stop + "</span><span>" + esc(leg.to) + "</span></div>";
+  }
+  function stopsText(leg) {
+    var n = num(leg.stops) || 0, via = arr(leg.connections).map(str).filter(Boolean).join(", ");
+    return n === 0 ? "nonstop" : plural(n, "stop", "stops") + (via ? ", " + via : "");
+  }
+  function timesHtml(leg) {
+    var dep = str(leg.dep_local), arrv = str(leg.arr_local), plus = num(leg.arr_plus_days);
+    if (!dep && !arrv) return "";
+    return esc(dep) + "→" + esc(arrv) + (plus ? "<sup>" + (plus > 0 ? "+" : "") + plus + "</sup>" : "");
+  }
+  function flightsText(leg) { return arr(leg.flights).map(str).filter(Boolean).join(" · "); }
+  function legMeta(leg) {
+    var times = timesHtml(leg);
+    return [esc(flightsText(leg)), esc(stopsText(leg)), times ? '<span class="leg-times">' + times + "</span>" : ""].filter(Boolean).join(" · ");
+  }
+  function legRow(leg, label, pax) {
+    var cost = num(leg.cost);
+    return '<div class="leg-row"><div class="leg-dir">' + label + '</div><div class="leg-main"><div class="leg-date">' + fmtDay(leg.date) + "</div>" + routeHtml(leg) +
+      '</div><div class="leg-side">' + seatGlyph(leg, pax) +
+      (cost != null ? '<div class="leg-cost">' + kfmt(cost) + " <small>pp</small></div>" : "") + '</div><div class="leg-meta">' + legMeta(leg) + "</div></div>";
+  }
+  function bookedRow(leg, label) {
+    return '<div class="leg-row leg-booked"><div class="leg-dir">' + label + '</div><div class="leg-main"><div class="leg-date">' + fmtDay(leg.date) + "</div>" + routeHtml(leg) +
+      '</div><div class="leg-side"><span class="booked-tag">Booked</span></div><div class="leg-meta">' + esc(flightsText(leg)) + " · ticketed</div></div>";
+  }
+  function pendingRow(label, note) {
+    return '<div class="leg-row leg-pending"><div class="leg-dir">' + label + '</div><div class="leg-main"><div class="leg-pending-text">' +
+      esc(note || "Still watching for this leg.") + '</div></div><div class="leg-side"><span class="seat-glyph seat-watching">watching</span></div></div>';
+  }
+  function freshChip(p, dim) {
+    var seen = num(p.seen_minutes);
+    if (seen == null) return "";
+    var cls = seen < 180 ? "fresh-ok" : (seen < 720 ? "fresh-aging" : "fresh-stale");
+    var txt = dim ? "last seen " + agoText(seen) + " ago" : agoText(seen) + " ago" + (p.rechecked === true ? " · fresh" : "");
+    return '<span class="fresh-chip ' + cls + '"><span class="fresh-led" aria-hidden="true"></span>' + txt + "</span>";
+  }
+  var STATE_CLASS = { full: "state-full", check: "state-check", half: "state-half" };
+  function dirWord(dir) { return dir === "back" ? "Return" : "Outbound"; }
+  /* The pair as the card shows it: which legs are live, which one is already booked. */
+  function pairParts(p, w) {
+    var out = legOf(p.out), back = legOf(p.back);
+    return { out: out, back: back, bookedOut: out ? null : legOf(w.booked_out_leg), bookedBack: back ? null : legOf(w.booked_back_leg) };
+  }
+  function noteHasOwnLine(x) { return !!((x.out || x.bookedOut) && (x.back || x.bookedBack)); }
+  function stateLabel(p, w) {
+    var pax = paxOf(w), x = pairParts(p, w);
+    if (x.bookedOut || x.bookedBack) {
+      var live = x.out || x.back, word = dirWord(x.out ? "out" : "back");
+      if (!live) return "Booked";
+      var sure = p.state === "full" || (p.state !== "check" && ownSeats(live) >= pax);
+      return sure ? word + " · " + pax + " seats" : word + " · verify " + pax;
+    }
+    if (p.state === "full") return pax + " seats both ways";
+    if (p.state === "check") return "Verify " + pax + " seats";
+    return x.back && !x.out ? "Return only" : "Outbound only";
+  }
+  function unitedLink(leg, primary) {
+    var u = safeUrl(leg.united_url, UNITED_HOST);
+    if (!u) return "";
+    var word = leg.dir === "back" ? "back" : "out";
+    return '<a class="btn ' + (primary ? "btn-primary" : "btn-quiet") + '" href="' + esc(u) + '" target="_blank" rel="noopener" data-united-leg="' + word + '">United · ' + word +
+      ' <span class="ext" aria-hidden="true">↗</span><span class="sr-only"> (opens united.com)</span></a>';
+  }
+  function saLink(leg, label) {
+    var u = leg ? safeUrl(leg.sa_url, SA_HOST) : null;
+    if (!u) return "";
+    return '<a class="text-btn" href="' + esc(u) + '" target="_blank" rel="noopener" data-sa-link>' + (label || "seats.aero") + ' <span aria-hidden="true">&nbsp;↗</span></a>';
+  }
+  function pairButtons(p, x, inSheet) {
+    var btns = [];
+    if (x.out) btns.push(unitedLink(x.out, true));
+    if (x.back) btns.push(unitedLink(x.back, !x.out));
+    btns = btns.filter(Boolean);
+    if (!btns.length) return "";
+    return '<div class="pair-actions' + (btns.length === 1 ? " one-col" : "") + (inSheet ? " in-sheet" : "") + '">' + btns.join("") + "</div>";
+  }
+  function pairMore(p, x, inSheet) {
+    var id = esc(p.id);
+    var html = '<div class="pair-more' + (inSheet ? " in-sheet" : "") + '">';
+    if (!inSheet) html += '<button class="text-btn" type="button" data-act="detail" data-pair-id="' + id + '" data-fk="detail:' + id + '">Details</button>';
+    if (!inSheet) html += saLink(x.out || x.back);
+    html += '<button class="text-btn" type="button" data-act="booked" data-pair-id="' + id + '" data-fk="booked:' + id + '">Booked…</button>';
+    html += '<button class="text-btn" type="button" data-act="notreal" data-pair-id="' + id + '" data-fk="notreal:' + id + '">Not real</button>';
+    return html + "</div>";
+  }
+  function pairCard(p, rank, b) {
+    var w = b.watch, pax = paxOf(w), x = pairParts(p, w), dim = isDim(b), id = esc(p.id);
+    var label = stateLabel(p, w);
+    var html = '<article class="pair-card' + (dim ? " is-stale" : "") + '" data-pair-id="' + id + '" data-fk="card:' + id + '" tabindex="0" aria-label="Pair ' + rank + ", " + esc(label) + '. Open details.">';
+    html += '<div class="pair-top"><span class="rank">#' + rank + '</span><span class="state-pill ' + (STATE_CLASS[p.state] || "state-half") + '">' + esc(label) + "</span>" + freshChip(p, dim) + "</div>";
+    html += x.out ? legRow(x.out, "Out", pax) : (x.bookedOut ? bookedRow(x.bookedOut, "Out") : pendingRow("Out", p.pending_note));
+    html += '<div class="perf" aria-hidden="true"></div>';
+    html += x.back ? legRow(x.back, "Back", pax) : (x.bookedBack ? bookedRow(x.bookedBack, "Back") : pendingRow("Back", p.pending_note));
+    // The watcher's note about this pair. A card with a leg still pending shows it in that leg's row instead.
+    if (str(p.pending_note) && noteHasOwnLine(x)) html += '<p class="pair-note" data-pair-note>' + esc(p.pending_note) + "</p>";
+
+    var total = num(p.miles_total), pp = num(p.miles_pp), cash = num(p.cash_total_cents);
+    var live = [x.out, x.back].filter(Boolean);
+    var oneWay = live.length === 1;
+    var unit = "for " + pax + (oneWay ? ((x.bookedOut || x.bookedBack) ? ", " + dirWord(live[0].dir).toLowerCase() : ", one way") : "");
+    var split = live.length === 2 && num(live[0].cost) != null && num(live[1].cost) != null ? kfmt(live[0].cost) + " + " + kfmt(live[1].cost) : (oneWay ? "one way" : "");
+    if (total != null) {
+      html += '<div class="cost-block"><div class="cost-total"><span class="cost-big">' + kfmt(total) + '</span><span class="cost-unit">' + unit + "</span>" +
+        (cash != null ? '<span class="cost-tax">+ ' + money(cash, str(p.currency)) + " taxes</span>" : "") + "</div>" +
+        '<div class="cost-pp">' + (pp != null ? "<b>" + kfmt(pp) + " pp</b>" : "") + split + "</div>" +
+        '<div class="fund-line"><span class="prog">MileagePlus</span>' + (str(w.tier_label) ? '<span class="fund-sep" aria-hidden="true">·</span><span>your ' + esc(w.tier_label) + " price</span>" : "") + "</div></div>";
+    }
+    html += pairButtons(p, x, false) + pairMore(p, x, false) + "</article>";
+    return html;
+  }
+
+  /* ---------- banners ---------- */
+  function staleBanner(b) {
+    if (S.net === "ok") return "";
+    var when = fmtWhen(new Date(S.boardAt).toISOString(), Date.now());
+    if (S.net === "offline") {
+      return '<div class="banner banner-warn" role="status" data-banner="offline"><strong>Offline. This is the board from ' + when + '.</strong><p>Tandem can’t be reached from this phone right now, so nothing below is current. It refreshes when you are back online.</p></div>';
+    }
+    return '<div class="banner banner-warn" role="status" data-banner="refresh-failed"><strong>Couldn’t refresh. This is the board from ' + when + ".</strong><p>" + esc(S.netMsg || "Tandem answered with an error.") + " Nothing below is current.</p></div>";
+  }
+  function pausedBanner() {
+    return '<div class="banner banner-paused" data-banner="paused"><strong>Watch paused</strong><p>Tandem is not checking seats.aero or sending alerts. Resume on the Watch tab.</p></div>';
+  }
+  function blindBanner(b) {
+    var h = b.health, since = ts(h.blind_since) != null ? "Blind since " + fmtWhen(h.blind_since, nowOf(b)) : "Tandem is blind right now";
+    return '<div class="banner banner-danger" role="alert" data-banner="blind"><strong>' + since + "</strong><p>Tandem can’t see United award space on seats.aero right now. Below is the last good check, not current space. Tandem won’t report that nothing is available until it can see again.</p></div>";
+  }
+  function troubleBanner(b, mode) {
+    var h = b.health, lastOk = ts(h.last_ok_at) != null ? " Last good check: " + fmtWhen(h.last_ok_at, nowOf(b)) + "." : "";
+    var title = str(h.headline) || (mode === "stale" ? "No recent check" : "Something went wrong with the last check");
+    var body = mode === "stale" ? "Tandem hasn’t finished a check recently, so what follows may be out of date." : "The watcher reported a problem, so what follows may be out of date.";
+    return '<div class="banner banner-danger" role="alert" data-banner="' + mode + '"><strong>' + esc(title) + "</strong><p>" + body + lastOk + "</p></div>";
+  }
+  function setupBanner() {
+    return '<div class="banner banner-warn" data-banner="setup"><strong>Alerts not connected yet</strong><p>Tandem is watching, but it can’t push to your phone until the alert channel is connected. Anything it finds still shows here.</p></div>';
+  }
+  function bookedBanner(b) {
+    var w = b.watch, o = legOf(w.booked_out_leg), r = legOf(w.booked_back_leg);
+    if (!o && !r) return "";
+    var gmin = num(w.gap_min), gmax = num(w.gap_max), gap = gmin != null && gmax != null ? (gmin === gmax ? String(gmin) : gmin + "–" + gmax) : "";
+    function line(leg, dir) {
+      return '<strong><span class="booked-tag">Booked</span> ' + dirWord(dir) + " · " + fmtDay(leg.date) + (flightsText(leg) ? " · " + esc(flightsText(leg)) : "") + "</strong>";
+    }
+    function undo(leg, label) { return '<button class="text-btn" type="button" data-act="unbook" data-leg-id="' + esc(leg.id) + '" data-fk="unbook:' + esc(leg.id) + '">' + (label || "Undo") + "</button>"; }
+    var html = '<div class="banner banner-booked" data-banner="booked">';
+    if (o && r) {
+      html += line(o, "out") + line(r, "back") + "<p>Both legs are marked booked. There is nothing left to hunt for this watch.</p>" + undo(o, "Undo outbound") + undo(r, "Undo return");
+    } else if (o) {
+      var rng = gmin != null && gmax != null && isDate(o.date) ? ': <span class="nowrap">' + fmtRange(addDays(o.date, gmin), addDays(o.date, gmax)) + "</span>" : "";
+      html += line(o, "out") + "<p>Now hunting returns only" + (gap ? ", " + gap + " days later" : "") + rng + ".</p>" + undo(o);
+    } else {
+      var rng2 = gmin != null && gmax != null && isDate(r.date) ? ': <span class="nowrap">' + fmtRange(addDays(r.date, -gmax), addDays(r.date, -gmin)) + "</span>" : "";
+      html += line(r, "back") + "<p>Now hunting outbounds only" + (gap ? ", " + gap + " days earlier" : "") + rng2 + ".</p>" + undo(r);
+    }
+    return html + "</div>";
+  }
+
+  /* ---------- header + credit ---------- */
+  function setHealth(cls, text) {
+    $("#health").className = "health" + (cls ? " " + cls : "");
+    $("#health-text").textContent = text;
+  }
+  function renderHead() {
+    var b = S.board;
+    $("#head-watch").textContent = b ? str(b.watch.name) : "";
+    if (!b) {
+      var g = S.gate.kind;
+      setHealth(g === "error" || g === "forbidden" ? "health-blind" : "health-paused",
+        g === "loading" ? "Loading…" : g === "offline" ? "Offline · can’t reach Tandem" : g === "forbidden" ? "Not allowed" : "Problem loading the watch");
+      return;
+    }
+    if (S.net !== "ok") { setHealth("health-paused", (S.net === "offline" ? "Offline" : "Couldn’t refresh") + " · showing the " + fmtWhen(new Date(S.boardAt).toISOString(), Date.now()) + " board"); return; }
+    var h = b.health, mode = modeOf(b), now = nowOf(b), head = str(h.headline), calls = num(h.calls_remaining);
+    var tail = calls != null && !/calls left/i.test(head) ? " · " + full(calls) + " calls left" : "";
+    if (mode === "paused") { setHealth("health-paused", "Paused · no checks or alerts until you resume"); return; }
+    if (mode === "first") { setHealth("health-paused", "First check pending" + tail); return; }
+    if (mode === "blind") {
+      if (!head) head = ts(h.blind_since) != null ? "Blind since " + fmtWhen(h.blind_since, now) : "Blind";
+      else if (!/blind/i.test(head)) head = "Blind · " + head;
+      setHealth("health-blind", head + tail); return;
+    }
+    if (mode === "stale") { setHealth("health-blind", (head || "No recent check") + tail); return; }
+    if (mode === "error") { setHealth("health-blind", (head || "Problem with the last check") + tail); return; }
+    if (!head) head = ts(h.last_run_at) != null ? "Checked " + agoFrom(h.last_run_at, now) + " ago" : "Watching";
+    if (mode === "setup") { setHealth("health-warn", /alert/i.test(head) ? head : head + " · alerts not connected"); return; }
+    setHealth("", head + tail + (obj(h.canary).ok === true ? " · canary ok" : ""));
+  }
+  function creditHtml(extra) {
+    var b = S.board, a = b ? b.attribution : {};
+    var url = safeUrl(a.url, SA_HOST) || "https://seats.aero";
+    var text = str(a.text) || "Award data from seats.aero";
+    return '<span class="credit-line"><a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(text) + "</a>" + (extra ? ". " + extra : ".") + "</span>";
+  }
+  function renderCredits() {
+    var b = S.board, tier = b && str(b.watch.tier_label) ? "Cached. Prices are your " + esc(b.watch.tier_label) + " tier." : "Cached.";
+    $("#credit-gate").innerHTML = creditHtml("");
+    $("#credit-pairs").innerHTML = creditHtml(tier) + (b ? "<span>Confirm both flights for " + paxOf(b.watch) + " on united.com before you move any points.</span>" : "");
+    $("#credit-dates").innerHTML = creditHtml(tier);
+    $("#credit-watch").innerHTML = creditHtml("It comes through your personal API key, which stays on the server.");
+  }
+
+  /* ---------- gate: loading, offline, error, not allowed ---------- */
+  function renderGate() {
+    var g = S.gate, html = "";
+    if (g.kind === "loading") {
+      html = '<div class="title-block" aria-busy="true"><span class="eyebrow">Loading your watch…</span><div class="skel skel-title"></div><div class="skel skel-line skel-w80"></div></div>';
+      for (var i = 0; i < 2; i++) {
+        html += '<div class="panel" aria-hidden="true"><div class="skel skel-pill"></div><div class="skel skel-route"></div><div class="skel skel-line skel-w50"></div>' +
+          '<div class="skel skel-route"></div><div class="skel skel-line skel-w50"></div><div class="skel skel-cost"></div>' +
+          '<div class="skel-pair"><div class="skel skel-btn"></div><div class="skel skel-btn"></div></div></div>';
+      }
+    } else if (g.kind === "offline") {
+      html = '<div class="panel" data-gate="offline"><span class="eyebrow">Offline</span><p class="empty-big">Can’t reach Tandem from this phone.</p>' +
+        "<p>The watcher runs in the cloud and keeps going without this page. Nothing can be shown until the connection is back.</p>" +
+        '<button class="btn btn-primary btn-wide" type="button" data-act="retry" data-fk="retry">Try again</button></div>';
+    } else if (g.kind === "forbidden") {
+      html = '<div class="panel" data-gate="forbidden"><span class="eyebrow">Not allowed</span><p class="empty-big">This account can’t open Tandem.</p>' +
+        "<p>" + esc(g.message || "The address you signed in with is not on the allowlist.") + "</p>" +
+        (S.session && S.session.user && S.session.user.email ? '<p class="fine">Signed in as ' + esc(S.session.user.email) + ".</p>" : "") +
+        '<button class="btn btn-quiet btn-wide" type="button" data-act="signout" data-fk="signout">Sign out</button></div>';
+    } else {
+      html = '<div class="panel" data-gate="error"><span class="eyebrow">Something went wrong</span><p class="empty-big">Tandem couldn’t load the watch.</p>' +
+        "<p>" + esc(g.message || "The server answered with an error.") + "</p>" +
+        '<p class="fine">This is the page failing, not a statement about award space.</p>' +
+        '<button class="btn btn-primary btn-wide" type="button" data-act="retry" data-fk="retry">Try again</button>' +
+        '<button class="btn btn-quiet btn-wide" type="button" data-act="signout">Sign out</button></div>';
+    }
+    $("#gate-body").innerHTML = html;
+  }
+
+  /* ---------- Pairs ---------- */
+  function renderPairsHead(b) {
+    var w = b.watch, pax = paxOf(w), chips = [];
+    function codes(list) { return arr(list).map(str).filter(Boolean).map(function (c, i) { return i === 0 ? "<b>" + esc(c) + "</b>" : esc(c); }).join(" · "); }
+    var o = codes(w.origins), d = codes(w.dests);
+    if (o && d) chips.push(o + " → " + d);
+    if (fmtRange(w.out_from, w.out_to)) chips.push("Out " + fmtRange(w.out_from, w.out_to));
+    var gmin = num(w.gap_min), gmax = num(w.gap_max);
+    if (gmin != null && gmax != null) chips.push("Back " + (gmin === gmax ? gmin : gmin + "–" + gmax) + " days later");
+    chips.push("<b>" + pax + "</b> travelers" + (str(w.cabin) ? " · " + esc(w.cabin) : ""));
+    if (capK(w)) chips.push("≤ <b>" + capK(w) + "</b> pp each way");
+    var ms = num(w.max_stops);
+    if (ms != null) chips.push((ms === 0 ? "Nonstop" : "≤ " + plural(ms, "stop", "stops")) + " · United-operated");
+    $("#pairs-head").innerHTML = '<span class="eyebrow">Watch · United Polaris saver</span><h1 class="view-title" id="pairs-title" tabindex="-1">' + esc(w.name || "Your watch") + "</h1>" +
+      '<div class="chips">' + chips.map(function (c) { return '<span class="chip">' + c + "</span>"; }).join("") + "</div>";
+  }
+  function openCounts(list) { var n = 0; list.forEach(function (d) { if (d.state !== "closed") n++; }); return { n: n, t: list.length }; }
+  function bestCell(label, best) {
+    var x = legOf(best), price = x ? num(x.price) : null;
+    if (price == null) return '<div class="best-cell"><span class="eyebrow">' + label + '</span><span class="best-val">–</span><span class="best-sub">nothing seen yet</span></div>';
+    var sub = [fmtDay(x.date), esc(arr(x.flights).map(str).filter(Boolean).join(" · "))].filter(Boolean).join(" · ");
+    return '<div class="best-cell"><span class="eyebrow">' + label + '</span><span class="best-val">' + kfmt(price) + ' pp</span><span class="best-sub">' + sub + "</span></div>";
+  }
+  function quietPanels(b, mode) {
+    var w = b.watch, pax = paxOf(w), cap = capK(w) || "your price", best = obj(w.best_seen);
+    var hunting = legOf(w.booked_out_leg) ? " on the return" : (legOf(w.booked_back_leg) ? " on the outbound" : "");
+    var big = mode === "paused" ? "Nothing at " + cap + " for " + pax + hunting + " when Tandem last checked." : "Nothing at " + cap + " for " + pax + hunting + " yet. Tandem checks every hour.";
+    var html = '<div class="panel" data-panel="quiet"><span class="eyebrow">No pair yet</span><p class="empty-big">' + big + "</p>" +
+      '<div class="best-row">' + bestCell("Best out", best.out) + bestCell("Best back", best.back) + "</div>" +
+      '<p class="fine">Best is the lowest price seen at your tier, whatever the seat count.</p></div>';
+    return html + openingPanel(b);
+  }
+  /* How much of the window United has opened. A fact about the calendar, not about award space. */
+  function openingPanel(b) {
+    var w = b.watch, o = openCounts(b.days.out), r = openCounts(b.days.back);
+    if (!((o.t && o.n < o.t) || (r.t && r.n < r.t))) return "";
+    return '<div class="panel" data-panel="opening"><div class="section-head"><h3>Dates opening</h3><span>337 days ahead, one per day</span></div>' +
+      progressRow("Out", o, w.out_all_open_on) + progressRow("Back", r, w.back_all_open_on) +
+      '<p class="fine">Tandem only asks seats.aero about dates United has opened, so closed dates cost no calls.</p></div>';
+  }
+  /* Before the first run: say what will happen, claim nothing about what was found. */
+  function firstRunPanels(b, mode) {
+    var body = mode === "paused"
+      ? "<p>The watch is paused, so no check has run. Resume on the Watch tab and the first result will appear here.</p>"
+      : "<p>Tandem checks once an hour. The first result will appear here.</p>";
+    return '<div class="panel" data-panel="first-run"><span class="eyebrow">Getting started</span><p class="empty-big">First check pending.</p>' + body + "</div>" + openingPanel(b);
+  }
+  function progressRow(label, c, allOpen) {
+    if (!c.t) return "";
+    var pct = Math.max(0, Math.min(100, c.n / c.t * 100)).toFixed(1);
+    var note = c.n + " of " + c.t + " open" + (c.n < c.t && isDate(allOpen) ? " · all open by " + fmtDay(allOpen) : "");
+    return '<div class="progress-row"><span class="progress-label">' + label + '</span><div class="bar" role="img" aria-label="' + label + ": " + note + '"><span class="bar-fill" style="width:' + pct + '%"></span></div><span class="progress-note">' + note + "</span></div>";
+  }
+  function renderPairs(b) {
+    var mode = modeOf(b), html = staleBanner(b);
+    if (mode === "paused") html += pausedBanner();
+    if (mode === "blind") html += blindBanner(b);
+    if (mode === "stale" || mode === "error") html += troubleBanner(b, mode);
+    if (needsSetup(b)) html += setupBanner();
+    html += bookedBanner(b);
+    var w = b.watch, bothBooked = legOf(w.booked_out_leg) && legOf(w.booked_back_leg);
+    if (b.pairs.length) {
+      var title = legOf(w.booked_out_leg) ? "Return candidates" : (legOf(w.booked_back_leg) ? "Outbound candidates" : plural(b.pairs.length, "ranked pair", "ranked pairs"));
+      html += '<div class="section-head"><h2>' + title + "</h2><span>best first</span></div><div class=\"pair-list\">";
+      b.pairs.forEach(function (p, i) { html += pairCard(p, num(p.rank) || i + 1, b); });
+      html += "</div>";
+    } else if (bothBooked) {
+      html += "";
+    } else if (neverRan(b) && S.net === "ok") {
+      html += firstRunPanels(b, mode);
+    } else if (isClean(b)) {
+      html += quietPanels(b, mode);
+    } else {
+      html += '<div class="panel" data-panel="no-reading"><span class="eyebrow">No current reading</span><p class="empty-big">Tandem can’t tell what is available right now.</p>' +
+        "<p>This is not a finding. Pairs show here again once a clean check comes through.</p></div>";
+    }
+    $("#pairs-body").innerHTML = html;
+  }
+
+  /* ---------- Dates ---------- */
+  var DAY_CLASS = { two: "ds-two", one: "ds-one", unknown: "ds-unknown", none: "ds-none", closed: "ds-closed", booked: "ds-booked", muted: "ds-muted", unchecked: "ds-unchecked" };
+  function priceK(v) { var n = num(v); return n == null ? "" : (Math.round(n * 10) / 10).toLocaleString("en-US"); }
+  /* What a cell may claim. A "two" with no seat number is shown as unknown: the page never implies a count it was not given.
+     Before the first run (`fresh`), an open date with no price has not been looked at, so it is "unchecked", not "no saver". */
+  function dayShape(d, fresh) {
+    var st = DAY_CLASS[d.state] ? d.state : "muted", seats = num(d.seats), price = priceK(d.price_k);
+    if (st === "two" && !(seats > 0)) st = "unknown";
+    if (fresh && st === "none" && !price) st = "unchecked";
+    return { st: st, seats: seats, price: price };
+  }
+  function dayLabel(v) {
+    switch (v.st) {
+      case "two": return v.price + "×" + v.seats;
+      case "one": return v.price + "×" + (v.seats > 0 ? v.seats : 1);
+      case "unknown": return v.price + "×?";
+      case "none": return v.price || "–";
+      case "closed": return "·";
+      case "booked": return "✓";
+      default: return "";
+    }
+  }
+  function dayText(d, v) {
+    if (v.st === "unchecked") return "Not checked yet.";
+    if (str(d.text)) return d.text;
+    if (v.st === "closed") return isDate(d.opens_on) ? "United hasn’t opened this date yet. It opens " + fmtLong(d.opens_on) + "." : "United hasn’t opened this date yet.";
+    return "";
+  }
+  function pickDefault(list) {
+    var order = ["two", "unknown", "one", "booked", "none"];
+    for (var i = 0; i < order.length; i++) {
+      for (var j = 0; j < list.length; j++) if (dayShape(list[j]).st === order[i]) return list[j].date;
+    }
+    return list.length ? list[0].date : null;
+  }
+  function monthGrid(key, byDate, picked, pax, fresh) {
+    var y = +key.slice(0, 4), m = +key.slice(5, 7);
+    var first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), count = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    var html = "", detail = "";
+    ["S", "M", "T", "W", "T", "F", "S"].forEach(function (x) { html += '<span class="wd" aria-hidden="true">' + x + "</span>"; });
+    for (var i = 0; i < first; i++) html += '<span class="cal-day ds-pad" aria-hidden="true"></span>';
+    for (var n = 1; n <= count; n++) {
+      var iso = key + "-" + pad(n), d = byDate[iso];
+      if (!d) { html += '<span class="cal-day ds-out" aria-hidden="true"><span class="dn">' + n + "</span></span>"; continue; }
+      var v = dayShape(d, fresh), on = picked === iso, text = dayText(d, v);
+      html += '<button class="cal-day ' + DAY_CLASS[v.st] + (on ? " is-picked" : "") + '" type="button" data-cal-day="' + iso + '" data-fk="day:' + iso + '" aria-pressed="' + on + '" aria-label="' + fmtDay(iso) + (text ? ": " + esc(text) : "") + '">' +
+        '<span class="dn">' + n + '</span><span class="dv">' + esc(dayLabel(v)) + "</span></button>";
+      if (on) {
+        var u = safeUrl(d.united_url, UNITED_HOST);
+        var btn = u ? '<a class="btn btn-quiet" href="' + esc(u) + '" target="_blank" rel="noopener" data-united-day="' + iso + '">Search United for ' + pax + " · " + fmtDay(iso) +
+          ' <span class="ext" aria-hidden="true">↗</span></a>' : "";
+        detail = '<div class="day-detail" data-day-detail="' + iso + '"><h4>' + fmtLong(iso) + "</h4>" + (text ? "<p>" + esc(text) + "</p>" : "") + btn + "</div>";
+      }
+    }
+    return '<div class="month"><h3 class="month-name">' + MONTHS_LONG[m - 1] + " " + y + '</h3><div class="cal" role="group" aria-label="' + MONTHS_LONG[m - 1] + " " + y + '">' + html + "</div>" + detail + "</div>";
+  }
+  function renderDates(b) {
+    var w = b.watch, pax = paxOf(w), cap = capK(w).replace(/k$/, ""), mode = modeOf(b), fresh = neverRan(b);
+    var list = b.days[S.dir] || [];
+    if (!S.picked[S.dir] || !list.some(function (d) { return d.date === S.picked[S.dir]; })) S.picked[S.dir] = pickDefault(list);
+    var html = staleBanner(b);
+    html += '<div class="dir-seg" role="tablist" aria-label="Direction">' +
+      dirBtn("out", "Outbound", fmtRange(w.out_from, w.out_to)) + dirBtn("back", "Return", fmtRange(w.back_from, w.back_to)) + "</div>";
+    html += '<ul class="legend" aria-label="Legend">' +
+      '<li><i class="swatch ds-two" aria-hidden="true"></i>' + pax + "+ seats" + (cap ? " ≤ " + cap + "k" : " at your price") + "</li>" +
+      '<li><i class="swatch ds-one" aria-hidden="true"></i>1 seat</li>' +
+      '<li><i class="swatch ds-unknown" aria-hidden="true"></i>Seats unknown</li>' +
+      '<li><i class="swatch swatch-plain" aria-hidden="true"></i>No saver (best, k)</li>' +
+      '<li><i class="swatch ds-closed" aria-hidden="true"></i>Not open yet</li>' +
+      '<li><i class="swatch ds-booked" aria-hidden="true"></i>Booked</li>' +
+      (fresh ? '<li><i class="swatch ds-unchecked" aria-hidden="true"></i>Not checked yet</li>' : "") + "</ul>";
+    if (fresh) html += '<p class="fine" data-note="first-run">' + (mode === "paused" ? "The watch is paused and has not run a check, so open dates are blank." : "Tandem has not run its first check yet, so open dates are blank. It checks once an hour.") + "</p>";
+    if (cap) html += '<p class="fine">Cells read price × seats: <b class="num">' + cap + "×4</b> is " + cap + 'k per person with 4 seats left; <b class="num">' + cap + "×?</b> means no seat count.</p>";
+    if (mode === "blind" || mode === "stale" || mode === "error") {
+      var lastOk = ts(b.health.last_ok_at) != null ? "From " + fmtWhen(b.health.last_ok_at, nowOf(b)) + ". " : "";
+      html += '<div class="banner banner-danger" data-banner="dates-last-good"><strong>Showing the last good check</strong><p>' + lastOk + "Tandem can’t confirm any of these dates right now.</p></div>";
+    } else if (mode === "paused") {
+      html += pausedBanner();
+    }
+    var oc = openCounts(list), allOpen = S.dir === "out" ? w.out_all_open_on : w.back_all_open_on;
+    var bookedOut = legOf(w.booked_out_leg), bookedBack = legOf(w.booked_back_leg);
+    if (bookedOut && !bookedBack) html += '<p class="fine">The outbound is booked, so only returns that fit it are watched.</p>';
+    else if (bookedBack && !bookedOut) html += '<p class="fine">The return is booked, so only outbounds that fit it are watched.</p>';
+    else if (oc.t && oc.n < oc.t) html += '<p class="fine" data-note="opening">' + oc.n + " of " + oc.t + " dates open. United opens one more each day" + (isDate(allOpen) ? " until " + fmtLong(allOpen) : "") + "; tap a hatched date to see when.</p>";
+    if (!list.length) {
+      html += '<div class="panel" data-panel="no-days"><p>No dates to show for this direction.</p></div>';
+    } else {
+      var byMonth = {}, keys = [];
+      list.forEach(function (d) { var k = d.date.slice(0, 7); if (!byMonth[k]) { byMonth[k] = {}; keys.push(k); } byMonth[k][d.date] = d; });
+      html += '<div class="months' + (isDim(b) ? " is-stale-cal" : "") + '">' + keys.map(function (k) { return monthGrid(k, byMonth[k], S.picked[S.dir], pax, fresh); }).join("") + "</div>";
+    }
+    $("#dates-body").innerHTML = html;
+  }
+  function dirBtn(dir, label, range) {
+    return '<button class="dir-btn" type="button" role="tab" data-dir-pick="' + dir + '" data-fk="dir:' + dir + '" aria-selected="' + (S.dir === dir) + '"><b>' + label + "</b><small>" + range + "</small></button>";
+  }
+
+  /* ---------- Watch ---------- */
+  function statRow(key, val, cls) { return '<div class="stat-row"><span class="stat-key">' + key + '</span><span class="stat-val' + (cls ? " " + cls : "") + '">' + val + "</span></div>"; }
+  function ruleRow(key, val, loud) { return '<div class="stat-row"><span class="stat-key">' + key + '</span><span class="prio' + (loud ? " prio-loud" : "") + '">' + val + "</span></div>"; }
+  var RUN_CLASS = { ok: "", blind: " run-blind", fail: " run-fail", none: " run-none" };
+  function renderWatch(b) {
+    var w = b.watch, h = b.health, now = nowOf(b), pax = paxOf(w), cap = capK(w), mode = modeOf(b), paused = mode === "paused";
+    var html = staleBanner(b);
+    if (mode === "blind") html += blindBanner(b);
+    if (mode === "stale" || mode === "error") html += troubleBanner(b, mode);
+    if (needsSetup(b)) html += setupBanner();
+
+    html += '<div class="panel" data-panel="pause"><div class="switch-row"><div><b>' + (paused ? "Paused" : "Watching every hour") + "</b><small>" +
+      (paused ? "No calls, no alerts. Your seats.aero quota is untouched." : "Runs in the cloud once an hour. Your laptop can sleep.") + "</small></div>" +
+      '<button class="switch" type="button" id="pause-switch" data-act="toggle-pause" data-fk="pause" role="switch" aria-checked="' + String(!paused) + '" aria-label="Watching"' + (S.busy ? " disabled" : "") + "></button></div></div>";
+
+    var valid = w.tier_valid_through, tierLine;
+    if (isDate(valid)) {
+      var lapsed = ts(b.now) != null && valid < new Date(ts(b.now)).toISOString().slice(0, 10);
+      tierLine = lapsed ? '<span class="tier-valid tier-lapsed">was valid through ' + fmtLong(valid) + " · check your status</span>" : '<span class="tier-valid">valid through ' + fmtLong(valid) + "</span>";
+    } else {
+      tierLine = '<span class="tier-valid tier-unset">status date not set</span>';
+    }
+    html += '<div class="panel" data-panel="tier"><span class="eyebrow">Your price tier</span><span class="tier-value">' + esc(w.tier_label || w.tier || "Not set") + "</span>" + tierLine +
+      '<p class="fine">' + (cap ? "The " + cap + " price" : "Your price") + " depends on your United status and card. If either lapses, the same seat costs more and Tandem would be watching the wrong price.</p></div>";
+
+    var runs = arr(h.runs24).slice(-24), counts = { ok: 0, blind: 0, fail: 0, none: 0 }, ticks = "";
+    runs.forEach(function (r) { var st = RUN_CLASS[obj(r).state] != null ? r.state : "none"; counts[st]++; ticks += '<span class="run-tick' + RUN_CLASS[st] + '"></span>'; });
+    var fresh = neverRan(b);
+    var summary = fresh || !runs.length ? "No runs yet" : (counts.ok === runs.length ? counts.ok + " of " + runs.length + " ok" :
+      [counts.ok ? counts.ok + " ok" : "", counts.blind ? counts.blind + " blind" : "", counts.fail ? counts.fail + " failed" : "", counts.none ? counts.none + " no run" : ""].filter(Boolean).join(" · "));
+    var used = num(h.calls_used_today), left = num(h.calls_remaining), ceiling = num(h.ceiling);
+    html += '<div class="panel" data-panel="health"><div class="section-head"><h3>Health</h3><span>' + summary + "</span></div>";
+    if (fresh) html += '<p data-note="no-runs">Tandem has not run a check yet. Runs show here once the first one finishes, within the hour.</p>';
+    else if (runs.length) html += '<div class="runs" role="img" aria-label="Last ' + runs.length + " hourly runs: " + summary + '">' + ticks + '</div><div class="runs-axis" aria-hidden="true"><span>' + runs.length + "h ago</span><span>now</span></div>";
+    // Two different counts on one fixed scale: what Tandem itself has spent today, and what is left on the
+    // seats.aero key (which other tools may also spend). The scale is the key's daily allowance.
+    if (used != null || left != null) {
+      var usedTxt = used != null ? "<b>" + full(used) + "</b> used by Tandem today" : "", leftTxt = left != null ? "<b>" + full(left) + "</b> left on the key" : "key balance not read yet";
+      var label = [used != null ? full(used) + " calls used by Tandem today" + (ceiling != null ? ", against its own ceiling of " + full(ceiling) : "") : "", left != null ? full(left) + " of " + full(KEY_DAILY_CALLS) + " left on the key" : ""].filter(Boolean).join("; ");
+      html += '<div class="meter" role="img" aria-label="' + label + '"><span class="meter-fill" style="width:' + Math.max(0, Math.min(100, (used || 0) / KEY_DAILY_CALLS * 100)).toFixed(1) + '%"></span>' +
+        (ceiling != null ? '<span class="meter-cap" style="left:' + Math.max(0, Math.min(100, ceiling / KEY_DAILY_CALLS * 100)).toFixed(1) + '%"></span>' : "") + "</div>" +
+        '<div class="meter-legend"><span>' + [usedTxt, leftTxt].filter(Boolean).join(" · ") + "</span>" +
+        (ts(h.quota_resets_at) != null ? "<span>resets " + fmtWhen(h.quota_resets_at, now) + "</span>" : "") + "</div>";
+      html += '<p class="fine">The bar is the key’s ' + full(KEY_DAILY_CALLS) + " calls a day." + (ceiling != null ? " The tick marks Tandem’s own ceiling, " + full(ceiling) + " a day." : "") + " Under 150 left on the key it stops re-checks; under 50 it pauses until the reset.</p>";
+    }
+    var can = obj(h.canary), mon = obj(h.monitor), del = obj(h.delivery), hb = obj(h.heartbeat), pt = obj(h.pushes_today), smoke = obj(h.smoke);
+    html += '<div class="stat-list">';
+    if (ts(h.last_run_at) != null) html += statRow("Last check", agoFrom(h.last_run_at, now) + " ago");
+    if (mode !== "ok" && mode !== "setup" && ts(h.last_ok_at) != null) html += statRow("Last good check", fmtWhen(h.last_ok_at, now));
+    html += statRow("Canary", esc(str(can.text) || (can.ok === true ? "ok" : can.ok === false ? "failed" : "not run yet")), can.ok === false ? "stat-bad" : "");
+    html += statRow("Outside monitor", paused ? "paused with the watch" : mon.configured === false ? "not connected yet" : (ts(mon.last_ping_at) != null ? "pinged " + agoFrom(mon.last_ping_at, now) + " ago · alerts after 3h of silence" : "connected · no ping yet"), !paused && mon.configured === false ? "stat-warn" : "");
+    var delText, delCls = "";
+    if (del.configured === false) { delText = "Alerts not connected yet"; delCls = "stat-warn"; }
+    else if (del.failing === true) { delText = "failing" + (ts(del.last_push_at) != null ? " · last try " + fmtWhen(del.last_push_at, now) : ""); delCls = "stat-bad"; }
+    else if (ts(del.last_push_at) != null) { delText = "last push " + fmtWhen(del.last_push_at, now) + (del.last_status === "sent" ? " · delivered" : del.last_status === "failed" ? " · failed" : ""); if (del.last_status === "failed") delCls = "stat-bad"; }
+    else delText = "connected · nothing sent yet";
+    html += statRow("Push delivery", delText, delCls);
+    html += statRow("Weekly check-in", esc(str(hb.text)) || (ts(hb.at) != null ? fmtWhen(hb.at, now) : "none yet"));
+    var sent = [];
+    if (num(pt.full)) sent.push(plural(pt.full, "hit push", "hit pushes"));
+    if (num(pt.digest)) sent.push(pt.digest === 1 ? "morning digest" : pt.digest + " digests");
+    if (num(pt.health)) sent.push(plural(pt.health, "health alert", "health alerts"));
+    html += statRow("Alerts today", sent.length ? sent.join(" · ") : "none today");
+    if (str(smoke.text)) html += statRow("Test watch", esc(smoke.text));
+    html += "</div></div>";
+
+    html += '<div class="panel" data-panel="rules"><div class="section-head"><h3>Alerts</h3><span>' + (del.configured === false ? "not connected yet" : "via Pushover") + '</span></div><div class="stat-list">' +
+      ruleRow(pax + " seats both ways", "pushes at once, 7 AM–11 PM", true) +
+      ruleRow("Found overnight", "waits for 7 AM") +
+      ruleRow("Verify " + pax + " · one way", "7:30 AM digest") +
+      ruleRow("First " + (cap || "saver seat") + " of the season", "one push, once") +
+      ruleRow("Problems", "once a day at most") +
+      ruleRow("Runs stop", "outside monitor, 3h") +
+      ruleRow("Still watching", "Sundays, silent") +
+      '</div><p class="fine">Times are Eastern. The digest goes out only on days with news. At most 3 hit pushes a day; extras wait for the digest. A pair pushes again only if it becomes ' + pax + " seats both ways, drops 10%, or comes back after 24 hours gone.</p></div>";
+
+    var gmin = num(w.gap_min), gmax = num(w.gap_max), ms = num(w.max_stops), capFull = num(w.cap_leg);
+    var defs = [];
+    var o = arr(w.origins).map(str).filter(Boolean).map(esc).join(" or "), d = arr(w.dests).map(str).filter(Boolean).map(esc).join(" or ");
+    if (o && d) defs.push(["Route", o + " ⇄ " + d]);
+    if (fmtRange(w.out_from, w.out_to, true)) defs.push(["Outbound", fmtRange(w.out_from, w.out_to, true)]);
+    if (gmin != null && gmax != null) defs.push(["Return", (gmin === gmax ? gmin : gmin + "–" + gmax) + " days after departure" + (fmtRange(w.back_from, w.back_to) ? ' <span class="nowrap">(' + fmtRange(w.back_from, w.back_to) + ")</span>" : "")]);
+    defs.push(["Travelers", pax + ", same flights"]);
+    if (str(w.cabin)) defs.push(["Cabin", w.cabin === "business" ? "Polaris business" : esc(w.cabin)]);
+    if (capFull != null) defs.push(["Price", "≤ " + full(capFull) + " miles per person each way" + (str(w.tier_label) ? ", your " + esc(w.tier_label) + " tier" : "")]);
+    if (ms != null) defs.push(["Routing", "United-operated, " + (ms === 0 ? "nonstop only" : "nonstop or up to " + plural(ms, "stop", "stops"))]);
+    defs.push(["Seats", "Pushes only when both legs show " + pax + "+. Unknown counts go to the digest as “verify " + pax + "”. 1 seat never alerts."]);
+    html += '<div class="panel" data-panel="definition"><div class="section-head"><h3>' + esc(w.name || "Your watch") + '</h3><span>set up for you</span></div><dl class="def">' +
+      defs.map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + x[1] + "</dd>"; }).join("") +
+      '</dl><p class="fine">A watch can’t be edited from the phone yet.</p></div>';
+
+    var email = S.session && S.session.user ? str(S.session.user.email) : "";
+    html += '<div class="panel" data-panel="account"><div class="account-row"><span>' + (email ? "Signed in as " + esc(email) : "Signed in") + '</span><button class="text-btn" type="button" data-act="signout" data-fk="signout">Sign out</button></div>' +
+      '<p class="fine">Tandem ' + esc(APP_VERSION) + (b.version ? " · watcher " + esc(b.version) : "") + "</p></div>";
+    $("#watch-body").innerHTML = html;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    var active = document.activeElement, fk = active && active.getAttribute ? active.getAttribute("data-fk") : null;
+    var inApp = S.screen === "app" && !!S.board;
+    $("#screen-signin").hidden = S.screen !== "signin";
+    $("#app-head").hidden = S.screen === "signin";
+    $("#screen-gate").hidden = !(S.screen === "gate" || (S.screen === "app" && !S.board));
+    $("#screen-pairs").hidden = !(inApp && S.tab === "pairs");
+    $("#screen-dates").hidden = !(inApp && S.tab === "dates");
+    $("#screen-watch").hidden = !(inApp && S.tab === "watch");
+    $("#tabbar").hidden = !inApp;
+    $$(".tab-btn").forEach(function (t) { if (inApp && t.getAttribute("data-tab") === S.tab) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); });
+    // Without a board, nothing of the last one stays in the page, hidden or not.
+    if (!inApp) ["#pairs-head", "#pairs-body", "#dates-body", "#watch-body"].forEach(function (id) { $(id).innerHTML = ""; });
+    if (S.screen === "signin") { $("#gate-body").innerHTML = ""; $("#head-watch").textContent = ""; renderSignin(); return; }
+    renderHead(); renderCredits();
+    if (!inApp) { renderGate(); }
+    else { renderPairsHead(S.board); renderPairs(S.board); renderDates(S.board); renderWatch(S.board); }
+    if (fk && $("#sheet").hidden && (!document.activeElement || document.activeElement === document.body)) focusKey(fk);
+  }
+  function focusKey(fk) {
+    var el = fk ? $$("[data-fk]").filter(function (n) { return n.getAttribute("data-fk") === fk && n.offsetParent !== null; })[0] : null;
+    if (el) { el.focus({ preventScroll: true }); return true; }
+    return false;
+  }
+  function goTab(tab, focusTitle) {
+    if (tab !== "pairs" && tab !== "dates" && tab !== "watch") return;
+    S.tab = tab; closeSheet(true); render(); window.scrollTo(0, 0);
+    if (focusTitle) { var t = $("#" + tab + "-title"); if (t) t.focus({ preventScroll: true }); }
+  }
+
+  /* ---------- sheet + toast ---------- */
+  var sheetReturn = null, sheetPair = null;
+  function openSheet(html) {
+    var active = document.activeElement;
+    if ($("#sheet").hidden) sheetReturn = active && active.getAttribute ? active.getAttribute("data-fk") : null;
+    var sh = $("#sheet");
+    sh.innerHTML = '<div class="sheet-grip" aria-hidden="true"></div>' + html;
+    sh.hidden = false; $("#scrim").hidden = false; sh.scrollTop = 0;
+    $("#app").inert = true; $("#app").setAttribute("aria-hidden", "true");
+    document.body.classList.add("sheet-open");
+    sh.focus();
+  }
+  function closeSheet(skipFocus) {
+    var sh = $("#sheet");
+    if (sh.hidden) return;
+    sh.hidden = true; $("#scrim").hidden = true; sh.innerHTML = "";
+    $("#app").inert = false; $("#app").removeAttribute("aria-hidden");
+    document.body.classList.remove("sheet-open");
+    sheetPair = null;
+    if (!skipFocus && !focusKey(sheetReturn)) $("#main").focus({ preventScroll: true });
+    sheetReturn = null;
+  }
+  var toastTimer = null;
+  function toast(main, sub) {
+    var t = $("#toast");
+    t.innerHTML = esc(main) + (sub ? "<small>" + esc(sub) + "</small>" : "");
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 4200);
+  }
+  function findPair(id) { var list = S.board ? S.board.pairs : []; for (var i = 0; i < list.length; i++) if (String(list[i].id) === String(id)) return list[i]; return null; }
+
+  function seatNote(leg, pax) {
+    var n = num(leg.seats), src = str(leg.seats_src);
+    if (leg.likely_short === true) return "No seat count for this trip, and another trip on the same long flight shows fewer than " + pax + ". Treat it as short until united.com shows " + pax + ".";
+    if (src === "sibling") {
+      return "seats.aero has no seat count for these exact flights. " + (n != null && n > 0 ? "Another flight combination on the same long flight shows " + n + ", so that number is inferred, not read for this trip. " : "") +
+        "Search " + pax + " travelers on United before you count on it.";
+    }
+    if (n == null || n <= 0) return "seats.aero has no seat count for this trip. Search " + pax + " travelers on United before you count on it.";
+    if (src === "tier") return plural(n, "seat", "seats") + " left, from United’s per-flight count in the seats.aero trip data.";
+    if (src === "row") return plural(n, "seat", "seats") + ", from the date-level count. Only one flight qualified that day, so the count belongs to it.";
+    return plural(n, "seat", "seats") + " left at this price.";
+  }
+  function detailSheet(p) {
+    var b = S.board, w = b.watch, pax = paxOf(w), x = pairParts(p, w), dim = isDim(b), label = stateLabel(p, w), legs = [x.out, x.back].filter(Boolean);
+    var legsHtml = "";
+    legs.forEach(function (leg) {
+      var crafts = arr(leg.aircraft).map(str);
+      var items = arr(leg.flights).map(str).filter(Boolean).map(function (f, i) { return '<div class="flight-item"><b>' + esc(f) + "</b><span>" + esc(crafts[i] || "") + "</span></div>"; }).join("");
+      var when = [timesHtml(leg) ? "Departs " + esc(str(leg.dep_local)) + ", arrives " + esc(str(leg.arr_local)) + (num(leg.arr_plus_days) ? " (" + (leg.arr_plus_days > 0 ? "+" : "") + leg.arr_plus_days + " day)" : "") : "", esc(stopsText(leg))].filter(Boolean).join(" · ");
+      legsHtml += '<div class="detail-leg"><div class="detail-leg-head"><span class="eyebrow">' + (leg.dir === "back" ? "Back" : "Out") + " · " + fmtLong(leg.date) + "</span>" + seatGlyph(leg, pax) + "</div>" + routeHtml(leg) +
+        '<div class="flight-list">' + items + "</div>" + (when ? '<span class="seat-note">' + when + " · times are local</span>" : "") +
+        '<span class="seat-note">' + seatNote(leg, pax) + "</span>" + saLink(leg, "This date on seats.aero") + "</div>";
+    });
+    var rows = legs.map(function (leg) { var c = num(leg.cost); return "<tr><td>" + dirWord(leg.dir) + "</td><td>" + (c != null ? full(c) : "–") + "</td><td>" + (c != null ? full(c * pax) : "–") + "</td></tr>"; }).join("");
+    var taxPP = legs.reduce(function (a, leg) { return a + (num(leg.taxes_cents) || 0); }, 0), cash = num(p.cash_total_cents), cur = str(p.currency);
+    var pp = num(p.miles_pp), total = num(p.miles_total);
+    var table = '<table class="cost-table"><thead><tr><th scope="col">Miles</th><th scope="col">Per person</th><th scope="col">For ' + pax + "</th></tr></thead><tbody>" + rows +
+      "<tr><td>Taxes and fees</td><td>" + money(taxPP, cur) + "</td><td>" + money(cash != null ? cash : taxPP * pax, cur) + "</td></tr>" +
+      '<tr class="total"><td>Total miles</td><td>' + (pp != null ? full(pp) : "–") + "</td><td>" + (total != null ? full(total) : "–") + "</td></tr></tbody></table>";
+    var seen = num(p.seen_minutes);
+    var fresh = seen == null ? "" : (dim ? "Last seen " + agoText(seen) + " ago. Tandem can’t re-check it right now. " : "seats.aero last saw this " + agoText(seen) + " ago." + (p.rechecked === true ? " Every leg’s data is under 3 hours old. " : " "));
+    var gap = num(p.gap_days), nights = num(p.nights);
+    var title = legs.length === 2 && gap != null ? gap + " days" + (nights != null ? ", " + plural(nights, "night", "nights") + " there" : "") : (legs.length === 1 ? dirWord(legs[0].dir) + " for " + pax : "Pair details");
+    sheetPair = p;
+    openSheet('<div class="sheet-head"><span class="state-pill ' + (STATE_CLASS[p.state] || "state-half") + '">' + esc(label) + '</span><button class="text-btn" type="button" data-act="close">Close</button></div>' +
+      '<h2 class="sheet-title" id="sheet-title">' + title + "</h2>" +
+      (str(p.pending_note) ? '<p class="pair-note in-sheet" data-pair-note>' + esc(p.pending_note) + "</p>" : "") + legsHtml + table +
+      '<div class="callout"><b>How you pay.</b> United MileagePlus miles' + (str(w.tier_label) ? " at your " + esc(w.tier_label) + " price" : "") + ". Move points only after united.com shows both flights for " + pax + ".</div>" +
+      '<p class="fine">' + fresh + "Before you transfer points, confirm the price for " + pax + " travelers on united.com.</p>" +
+      pairButtons(p, x, true) + pairMore(p, x, true));
+  }
+  function bookedSheet(p) {
+    var w = S.board.watch, x = pairParts(p, w), opts = "";
+    var gmin = num(w.gap_min), gmax = num(w.gap_max), gap = gmin != null && gmax != null ? (gmin === gmax ? String(gmin) : gmin + "–" + gmax) + " days " : "";
+    function name(leg) { return dirWord(leg.dir) + " · " + fmtDay(leg.date) + (arr(leg.flights).length ? " · " + esc(str(leg.flights[0])) : ""); }
+    if (x.out && x.back) {
+      opts += '<button class="option" type="button" data-act="book-out"><b>' + name(x.out) + "</b><span>Tandem then hunts returns " + gap + "later only.</span></button>";
+      opts += '<button class="option" type="button" data-act="book-back"><b>' + name(x.back) + "</b><span>Tandem then hunts outbounds " + gap + "earlier only.</span></button>";
+      opts += '<button class="option" type="button" data-act="book-both"><b>Both legs</b><span>The trip is booked. Tandem stops hunting for this watch.</span></button>';
+    } else if (x.out) {
+      opts += '<button class="option" type="button" data-act="book-out"><b>' + name(x.out) + "</b><span>" + (x.bookedBack ? "Both legs booked. Tandem stops hunting for this watch." : "Tandem then hunts returns " + gap + "later only.") + "</span></button>";
+    } else if (x.back) {
+      opts += '<button class="option" type="button" data-act="book-back"><b>' + name(x.back) + "</b><span>" + (x.bookedOut ? "Both legs booked. Tandem stops hunting for this watch." : "Tandem then hunts outbounds " + gap + "earlier only.") + "</span></button>";
+    }
+    sheetPair = p;
+    openSheet('<div class="sheet-head"><h2 class="sheet-title" id="sheet-title">What did you book?</h2><button class="text-btn" type="button" data-act="close">Cancel</button></div>' +
+      '<p class="fine">Tandem doesn’t book anything. This only tells it what to stop watching.</p><div class="option-list">' + opts + "</div>");
+  }
+  function notRealSheet(p) {
+    var w = S.board.watch, pax = paxOf(w), cap = capK(w) || "your price";
+    sheetPair = p;
+    openSheet('<div class="sheet-head"><h2 class="sheet-title" id="sheet-title">Hide this pair?</h2><button class="text-btn" type="button" data-act="close">Cancel</button></div>' +
+      "<p>Use this when united.com doesn’t show " + cap + " for " + pax + " on these flights. Tandem stops alerting on them. They come back only if seats.aero drops them and re-lists them after 24 hours.</p>" +
+      '<button class="btn btn-danger btn-wide" type="button" data-act="hide-pair">Hide pair</button>');
+  }
+  function unbookSheet(legId) {
+    openSheet('<div class="sheet-head"><h2 class="sheet-title" id="sheet-title">Not booked after all?</h2><button class="text-btn" type="button" data-act="close">Cancel</button></div>' +
+      "<p>Tandem goes back to hunting both directions for this watch.</p>" +
+      '<button class="btn btn-danger btn-wide" type="button" data-act="unbook-confirm" data-leg-id="' + esc(legId) + '">Mark as not booked</button>');
+  }
+
+  /* ---------- network ---------- */
+  function fail(kind, message, status) { var e = new Error(message || kind); e.kind = kind; e.status = status || 0; return e; }
+  function isNetAuthError(err) { return !!err && (err.status === 0 || err.status == null || /retryable|fetch/i.test(String(err.name) + " " + String(err.message))); }
+  async function currentSession() {
+    if (!sb) throw fail("signedout");
+    var r;
+    try { r = await sb.auth.getSession(); } catch (e) { throw fail("offline"); }
+    var s = r && r.data ? r.data.session : null;
+    if (s) { S.session = s; return s; }
+    if (r && r.error && isNetAuthError(r.error)) throw fail("offline");
+    throw fail("signedout");
+  }
+  async function send(method, path, body, token) {
+    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, FETCH_TIMEOUT_MS);
+    try {
+      var headers = { "Authorization": "Bearer " + token, "apikey": TANDEM_SUPABASE.key };
+      if (body !== undefined) headers["Content-Type"] = "application/json";
+      return await fetch(API_BASE + path, { method: method, headers: headers, body: body !== undefined ? JSON.stringify(body) : undefined, cache: "no-store", signal: ctl.signal });
+    } catch (e) { throw fail("offline"); }
+    finally { clearTimeout(timer); }
+  }
+  async function api(method, path, body) {
+    var s = await currentSession();
+    var r = await send(method, path, body, s.access_token);
+    if (r.status === 401) {
+      // The token can be stale after iOS froze the app. Refresh once before believing the 401.
+      var rr; try { rr = await sb.auth.refreshSession(); } catch (e) { throw fail("offline"); }
+      var fresh = rr && rr.data ? rr.data.session : null;
+      if (fresh) { S.session = fresh; r = await send(method, path, body, fresh.access_token); }
+      else if (rr && rr.error && isNetAuthError(rr.error)) throw fail("offline");
+    }
+    var data = null;
+    try { data = await r.json(); } catch (e) { data = null; }
+    var message = data && typeof data.message === "string" ? data.message : "";
+    if (r.status === 401) throw fail("signedout", message, 401);
+    if (r.status === 403) throw fail("forbidden", message, 403);
+    if (!r.ok) throw fail("error", message || "The server answered " + r.status + ".", r.status);
+    return data;
+  }
+  var inflight = null, lastTry = 0;
+  function loadBoard() {
+    if (inflight) return inflight;
+    lastTry = Date.now();
+    inflight = (async function () {
+      if (!S.board) { S.screen = "gate"; S.gate = { kind: "loading", message: "" }; render(); }
+      try {
+        var b = normalize(await api("GET", "/board"));
+        if (!b) throw fail("error", "Tandem sent something this page can’t read.");
+        S.board = b; S.boardAt = Date.now(); S.net = "ok"; S.netMsg = ""; S.screen = "app";
+      } catch (e) {
+        if (e.kind === "signedout") { toSignin("Your sign-in expired. Enter your email for a new code."); return; }
+        if (e.kind === "forbidden") { S.board = null; S.screen = "gate"; S.gate = { kind: "forbidden", message: e.message === "forbidden" ? "" : e.message }; closeSheet(true); }
+        else if (e.kind === "offline") { S.net = "offline"; if (!S.board) { S.screen = "gate"; S.gate = { kind: "offline", message: "" }; } }
+        else { S.net = "error"; S.netMsg = e.kind === "error" ? e.message : ""; if (!S.board) { S.screen = "gate"; S.gate = { kind: "error", message: S.netMsg }; } }
+      }
+      render();
+    })();
+    var done = function () { inflight = null; };
+    inflight.then(done, done);
+    return inflight;
+  }
+  async function mutate(calls, okMain, okSub) {
+    if (S.busy) return;
+    S.busy = true;
+    var active = document.activeElement, fk = $("#sheet").hidden && active && active.getAttribute ? active.getAttribute("data-fk") : null;
+    $$("#sheet button").forEach(function (x) { x.disabled = true; });
+    var sw = $("#pause-switch"); if (sw) sw.disabled = true;
+    var ok = false, gone = false;
+    try {
+      for (var i = 0; i < calls.length; i++) await api("POST", calls[i][0], calls[i][1]);
+      ok = true;
+    } catch (e) {
+      if (e.kind === "signedout") { gone = true; S.busy = false; toSignin("Your sign-in expired. Enter your email for a new code."); return; }
+      toast("Couldn’t save that", e.kind === "offline" ? "This phone is offline. Nothing changed." : (e.kind === "error" && e.message ? e.message : "Nothing changed. Try again."));
+    } finally { if (!gone) S.busy = false; }
+    closeSheet();
+    if (ok) toast(okMain, okSub);
+    if (inflight) await inflight;
+    await loadBoard();
+    if ($("#sheet").hidden && S.screen !== "signin" && (!document.activeElement || document.activeElement === document.body)) {
+      if (!focusKey(fk)) $("#main").focus({ preventScroll: true });
+    }
+  }
+
+  /* ---------- auth ---------- */
+  function initAuth() {
+    if (sb) return true;
+    if (!(window.supabase && window.supabase.createClient)) return false;
+    try {
+      sb = window.supabase.createClient(TANDEM_SUPABASE.url, TANDEM_SUPABASE.key,
+        { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: LS_AUTH } });
+    } catch (e) { sb = null; return false; }
+    sb.auth.onAuthStateChange(function (ev, s) {
+      S.session = s || null;
+      if (ev === "SIGNED_OUT") setTimeout(function () { if (S.screen !== "signin") toSignin(""); }, 0);
+    });
+    return true;
+  }
+  function toSignin(message) {
+    S.board = null; S.boardAt = 0; S.net = "idle"; S.session = null; S.busy = false;
+    S.screen = "signin"; S.signin = { step: "email", email: S.signin.email, busy: false };
+    closeSheet(true);
+    render();
+    setSigninMsg(message || "", false);
+  }
+  function setSigninMsg(text, isError) {
+    var m = $("#signin-msg");
+    m.textContent = text; m.className = "signin-msg" + (isError ? " is-error" : "");
+    m.setAttribute("role", isError ? "alert" : "status");
+  }
+  function codeBoxes() { return $$("[data-code-box]"); }
+  function codeValue() { return codeBoxes().map(function (x) { return x.value; }).join(""); }
+  function renderSignin() {
+    var si = S.signin, codeStep = si.step === "code";
+    $("#code-step").hidden = !codeStep;
+    $("#signin-links").hidden = !codeStep;
+    var email = $("#signin-email");
+    email.disabled = codeStep || si.busy;
+    $("#signin-btn").disabled = si.busy;
+    $("#signin-btn").textContent = si.busy ? (codeStep ? "Signing in…" : "Sending…") : (codeStep ? "Sign in" : "Email me a code");
+    codeBoxes().forEach(function (x) { x.disabled = si.busy; });
+    $$("#signin-links button").forEach(function (x) { x.disabled = si.busy; });
+  }
+  function authMessage(err, fallback) {
+    if (isNetAuthError(err)) return "Can’t reach the sign-in service. Check your connection and try again.";
+    if (err && err.status === 429) return "Too many tries. Wait a minute, then try again.";
+    return fallback;
+  }
+  async function requestCode() {
+    var si = S.signin, email = $("#signin-email").value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setSigninMsg("Enter the email address you use for Tandem.", true); $("#signin-email").focus(); return; }
+    if (!initAuth()) { setSigninMsg("The sign-in library didn’t load. Check your connection, then close and reopen Tandem.", true); return; }
+    si.busy = true; renderSignin(); setSigninMsg("Sending a code…", false);
+    var res;
+    try { res = await sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: false } }); } catch (e) { res = { error: e }; }
+    si.busy = false;
+    if (res.error) { renderSignin(); setSigninMsg(authMessage(res.error, "That address can’t sign in to Tandem."), true); return; }
+    si.step = "code"; si.email = email;
+    codeBoxes().forEach(function (x) { x.value = ""; });
+    renderSignin();
+    setSigninMsg("Code sent to " + email + ". It can take a minute to arrive.", false);
+    codeBoxes()[0].focus();
+  }
+  async function verifyCode() {
+    var si = S.signin, code = codeValue();
+    if (si.busy) return;
+    if (!/^\d{6}$/.test(code)) { setSigninMsg("Enter all 6 digits of the code.", true); return; }
+    si.busy = true; renderSignin(); setSigninMsg("Checking the code…", false);
+    var res;
+    try { res = await sb.auth.verifyOtp({ email: si.email, token: code, type: "email" }); } catch (e) { res = { error: e }; }
+    si.busy = false;
+    var session = res && res.data ? res.data.session : null;
+    if (res.error || !session) {
+      renderSignin();
+      setSigninMsg(authMessage(res.error, "That code didn’t work. Check it, or send a new one."), true);
+      codeBoxes().forEach(function (x) { x.value = ""; }); codeBoxes()[0].focus();
+      return;
+    }
+    S.session = session; S.signin = { step: "email", email: "", busy: false };
+    $("#signin-email").value = "";
+    S.screen = "gate"; S.gate = { kind: "loading", message: "" }; S.tab = "pairs";
+    render();
+    $("#main").focus({ preventScroll: true });
+    loadBoard();
+  }
+  async function signOut() {
+    closeSheet(true);
+    try { if (sb) await sb.auth.signOut({ scope: "local" }); } catch (e) { /* the local session is dropped either way */ }
+    toSignin("Signed out.");
+  }
+
+  /* ---------- events ---------- */
+  function openPairSheet(kind, id) {
+    var p = findPair(id) || (sheetPair && String(sheetPair.id) === String(id) ? sheetPair : null);
+    if (!p || !S.board) return;
+    if (kind === "detail") detailSheet(p); else if (kind === "booked") bookedSheet(p); else notRealSheet(p);
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act],[data-tab],[data-cal-day],[data-dir-pick],.pair-card,#scrim");
+    if (!t) return;
+    if (t.id === "scrim") { closeSheet(); return; }
+    if (t.hasAttribute("data-tab")) { goTab(t.getAttribute("data-tab"), false); return; }
+    if (t.hasAttribute("data-dir-pick")) { S.dir = t.getAttribute("data-dir-pick") === "back" ? "back" : "out"; render(); focusKey("dir:" + S.dir); return; }
+    if (t.hasAttribute("data-cal-day")) { S.picked[S.dir] = t.getAttribute("data-cal-day"); render(); focusKey("day:" + S.picked[S.dir]); return; }
+    var act = t.getAttribute("data-act"), pid = t.getAttribute("data-pair-id");
+    if (!act) {
+      // A tap on the card body opens its details; taps on its links and buttons keep their own meaning.
+      if (t.classList.contains("pair-card") && !e.target.closest("a,button")) openPairSheet("detail", pid);
+      return;
+    }
+    if (act === "close") { closeSheet(); return; }
+    if (act === "retry") { loadBoard(); return; }
+    if (act === "signout") { signOut(); return; }
+    if (act === "resend-code") { S.signin.step = "email"; requestCode(); return; }
+    if (act === "change-email") { S.signin = { step: "email", email: "", busy: false }; renderSignin(); setSigninMsg("", false); $("#signin-email").focus(); return; }
+    if (act === "detail" || act === "booked" || act === "notreal") { openPairSheet(act, pid || (sheetPair && sheetPair.id)); return; }
+    if (!S.board) return;
+    var w = S.board.watch;
+    if (act === "toggle-pause") {
+      var pausing = modeOf(S.board) !== "paused";
+      mutate([["/watch/" + encodeURIComponent(w.id), { status: pausing ? "paused" : "active" }]],
+        pausing ? "Watch paused" : "Watching again", pausing ? "No checks or alerts until you resume." : "Checks resume within the hour.");
+      return;
+    }
+    if (act === "unbook") { unbookSheet(t.getAttribute("data-leg-id")); return; }
+    if (act === "unbook-confirm") { mutate([["/leg/" + encodeURIComponent(t.getAttribute("data-leg-id")), { booked: false }]], "Marked as not booked", "Tandem is hunting both directions again."); return; }
+    var p = sheetPair;
+    if (!p) return;
+    var x = pairParts(p, w);
+    if (act === "hide-pair") { mutate([["/pair/" + encodeURIComponent(p.id), { not_real: true }]], "Pair hidden", "Tandem won’t alert on these flights unless they reappear after 24 hours gone."); return; }
+    if (act === "book-out" && x.out) { mutate([["/leg/" + encodeURIComponent(x.out.id), { booked: true }]], "Outbound marked booked", x.bookedBack ? "Both legs are booked." : "Now hunting returns only."); return; }
+    if (act === "book-back" && x.back) { mutate([["/leg/" + encodeURIComponent(x.back.id), { booked: true }]], "Return marked booked", x.bookedOut ? "Both legs are booked." : "Now hunting outbounds only."); return; }
+    if (act === "book-both" && x.out && x.back) {
+      mutate([["/leg/" + encodeURIComponent(x.out.id), { booked: true }], ["/leg/" + encodeURIComponent(x.back.id), { booked: true }]], "Both legs marked booked", "Tandem stops hunting for this watch.");
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    var sh = $("#sheet");
+    if (e.key === "Escape" && !sh.hidden) { closeSheet(); return; }
+    if (e.key === "Tab" && !sh.hidden) {
+      var f = $$("a[href],button:not([disabled])", sh);
+      if (!f.length) { e.preventDefault(); return; }
+      var first = f[0], last = f[f.length - 1], a = document.activeElement;
+      if (e.shiftKey && (a === first || a === sh)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+      else if (!sh.contains(a)) { e.preventDefault(); first.focus(); }
+      return;
+    }
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("pair-card")) {
+      e.preventDefault(); openPairSheet("detail", e.target.getAttribute("data-pair-id"));
+    }
+  });
+  $("#signin-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (S.signin.busy) return;
+    if (S.signin.step === "code") verifyCode(); else requestCode();
+  });
+  /* Six boxes that behave like one field: typing advances, backspace retreats, a pasted or autofilled code spreads out. */
+  $("#code-row").addEventListener("input", function (e) {
+    var boxes = codeBoxes(), i = boxes.indexOf(e.target);
+    if (i < 0) return;
+    var digits = e.target.value.replace(/\D/g, "");
+    e.target.value = digits.charAt(0);
+    for (var j = 1; j < digits.length && i + j < boxes.length; j++) boxes[i + j].value = digits.charAt(j);
+    var next = Math.min(i + Math.max(digits.length, 0), boxes.length - 1);
+    if (digits.length) boxes[next].focus();
+    if (/^\d{6}$/.test(codeValue())) verifyCode();
+  });
+  $("#code-row").addEventListener("keydown", function (e) {
+    var boxes = codeBoxes(), i = boxes.indexOf(e.target);
+    if (i < 0) return;
+    if (e.key === "Backspace" && !e.target.value && i > 0) { boxes[i - 1].value = ""; boxes[i - 1].focus(); e.preventDefault(); }
+    if (e.key === "ArrowLeft" && i > 0) { boxes[i - 1].focus(); e.preventDefault(); }
+    if (e.key === "ArrowRight" && i < boxes.length - 1) { boxes[i + 1].focus(); e.preventDefault(); }
+  });
+  $("#code-row").addEventListener("paste", function (e) {
+    var text = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!text) return;
+    e.preventDefault();
+    var boxes = codeBoxes();
+    boxes.forEach(function (x, i) { x.value = text.charAt(i) || ""; });
+    boxes[Math.min(text.length, boxes.length) - 1].focus();
+    if (/^\d{6}$/.test(text)) verifyCode();
+  });
+
+  /* Refetch when the app comes back to the front, when the phone regains a connection, and every five minutes while visible. */
+  function signedInView() { return S.screen !== "signin" && !(S.screen === "gate" && S.gate.kind === "forbidden"); }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && signedInView() && Date.now() - lastTry > 3000) loadBoard();
+  });
+  window.addEventListener("online", function () { if (signedInView()) loadBoard(); });
+  setInterval(function () { if (document.visibilityState === "visible" && signedInView()) loadBoard(); }, REFRESH_MS);
+
+  /* ---------- boot ---------- */
+  function boot() {
+    var hash = location.hash.replace("#", "");
+    if (hash === "dates" || hash === "watch") S.tab = hash;
+    S.screen = "gate"; S.gate = { kind: "loading", message: "" };
+    render();
+    if (!initAuth()) { toSignin(""); setSigninMsg("The sign-in library didn’t load. Check your connection, then close and reopen Tandem.", true); return; }
+    currentSession().then(function () { loadBoard(); }, function (e) {
+      if (e.kind === "offline") { S.screen = "gate"; S.gate = { kind: "offline", message: "" }; render(); }
+      else toSignin("");
+    });
+  }
+  boot();
+
+  /* Offline support: best-effort registration. A replaced worker means a new shell is ready. */
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+    var hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (!hadController) { hadController = true; return; }
+      toast("Tandem was updated", "Close and reopen the app to use the new version.");
+    });
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+})();
+</script>
+</body>
+</html>
