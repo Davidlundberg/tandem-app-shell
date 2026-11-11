@@ -17,7 +17,7 @@
 <!-- CSP: the sha256 value is the one inline script (id="tandem-js"). Any edit to that script changes
      its hash; tools/publish_shell.sh refuses to publish until it matches and prints the right value.
      connect-src is the Supabase project only: sign-in and the travel-api function. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https://umimaxkucnugmkifenyg.supabase.co; script-src https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js 'sha256-+5Go48ofaDQHMeo7+e8UGtXUjGOP32SxigdEgUowO14='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https://umimaxkucnugmkifenyg.supabase.co; script-src https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js 'sha256-a3lBSlF8YBlWUzdBoDKk4tyLyJjNBH/PyrbQKxUlNXo='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="static/icon.svg" type="image/svg+xml">
 <link rel="icon" href="static/icon-192.png" sizes="192x192" type="image/png">
@@ -552,14 +552,16 @@ h1, h2, h3 { text-wrap: balance; }
 .alerts-hint { padding: 0 4px; overflow-wrap: anywhere; }
 
 /* ---------- Sign in ---------- */
-.signin { flex: 1 0 auto; padding: calc(56px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 28px; }
-.signin-hero { display: flex; flex-direction: column; gap: 14px; }
-.signin-hero .brand-mark { width: 52px; height: 44px; color: var(--accent); }
+/* Sign-in is typed with the keyboard up, so the top is kept short: both fields, the message and the button
+   stay above it on a 375 x 812 phone. */
+.signin { flex: 1 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 20px; }
+.signin-hero { display: flex; flex-direction: column; gap: 10px; }
+.signin-hero .brand-mark { width: 40px; height: 34px; color: var(--accent); }
 .signin-word { font-family: var(--f-display); font-stretch: 125%; font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: 0.005em; }
-.signin-tag { font-size: 16px; color: var(--ink-2); max-width: 28ch; }
+.signin-tag { font-size: 15px; color: var(--ink-2); }
 .signin-form { display: flex; flex-direction: column; gap: 14px; }
-.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; border: 0; margin: 0; padding: 0; }
-.field label, .field legend { font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .input {
   font: 400 16px/1.2 var(--f-body);
   min-height: 48px; padding: 0 14px;
@@ -568,18 +570,14 @@ h1, h2, h3 { text-wrap: balance; }
 }
 .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
 .input[disabled] { background: var(--subtle); color: var(--ink-2); }
-.code-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
-.code-row .input { text-align: center; padding: 0; font: 600 20px/1 var(--f-mono); }
-/* The code step is used with the keyboard up: the tagline goes and the top closes up, so the note about the
-   code and the six boxes both stay above the keyboard. */
-.signin.is-code { padding-top: calc(28px + env(safe-area-inset-top, 0px)); gap: 20px; }
-.signin.is-code .signin-tag { display: none; }
+/* The password field carries its show/hide button inside its right edge. */
+.pw-row { position: relative; display: flex; min-width: 0; }
+.pw-row .input { padding-right: 68px; }
+.pw-toggle { position: absolute; top: 2px; right: 4px; bottom: 2px; min-width: 56px; color: var(--accent); }
 .signin-msg { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
-.signin-msg strong { color: var(--ink); font-weight: 700; }
 /* Empty, it stays in the accessibility tree (it is a live region) but takes no room. */
 .signin-msg:empty { margin-top: -14px; }
 .signin-msg.is-error { color: var(--danger); font-weight: 600; }
-.signin-links { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .signin-foot { margin-top: auto; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
 .signin-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
@@ -673,28 +671,20 @@ h1, h2, h3 { text-wrap: balance; }
       <form class="signin-form" id="signin-form" novalidate>
         <div class="field">
           <label for="signin-email">Email</label>
-          <input class="input" id="signin-email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" required>
+          <input class="input" id="signin-email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="signin-password">Password</label>
+          <div class="pw-row">
+            <input class="input" id="signin-password" name="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+            <button class="text-btn pw-toggle" type="button" id="pw-toggle" data-act="toggle-password" aria-controls="signin-password" aria-pressed="false" aria-label="Show password">Show</button>
+          </div>
         </div>
         <p class="signin-msg" id="signin-msg" role="status"></p>
-        <fieldset class="field" id="code-step" hidden>
-          <legend id="code-legend">6-digit code from your email</legend>
-          <div class="code-row" id="code-row">
-            <input class="input" data-code-box="0" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" aria-label="Digit 1">
-            <input class="input" data-code-box="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 2">
-            <input class="input" data-code-box="2" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 3">
-            <input class="input" data-code-box="3" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 4">
-            <input class="input" data-code-box="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 5">
-            <input class="input" data-code-box="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Digit 6">
-          </div>
-        </fieldset>
-        <button class="btn btn-primary btn-wide" id="signin-btn" type="submit">Email me a code</button>
-        <div class="signin-links" id="signin-links" hidden>
-          <button class="text-btn num" type="button" data-act="resend-code">Send a new code</button>
-          <button class="text-btn" type="button" data-act="change-email">Use a different email</button>
-        </div>
+        <button class="btn btn-primary btn-wide" id="signin-btn" type="submit">Sign in</button>
       </form>
       <div class="signin-foot">
-        <span>Only your allowlisted address can sign in. Type the code from the email; its link is for a different app.</span>
+        <span>Only your allowlisted address can sign in. Use the password you use for your other apps on this site.</span>
         <span class="credit-line">Award data from <a href="https://seats.aero" target="_blank" rel="noopener">seats.aero</a>.</span>
       </div>
     </section>
@@ -761,7 +751,7 @@ h1, h2, h3 { text-wrap: balance; }
    written into this file; tools/publish_shell.sh refuses to publish if it is.
    The board lives in memory only. It is never written to localStorage.
    ========================================================================== */
-var APP_VERSION = "0.2.1";            // lockstep with VERSION in sw.js
+var APP_VERSION = "0.2.2";            // lockstep with VERSION in sw.js
 var TANDEM_SUPABASE = {               // publishable key: public by design; the function checks the user
   url: "https://umimaxkucnugmkifenyg.supabase.co",
   key: "sb_publishable_1wJlFgMwGiOwb7-viFNfeg_qczcRsBx"
@@ -774,7 +764,6 @@ var STALE_MS = 3 * 60 * 60 * 1000;    // a last good check older than this is no
 var KEY_DAILY_CALLS = 1000;           // the seats.aero key's daily allowance: the call meter's fixed scale
 var REFRESH_MS = 5 * 60 * 1000;
 var FETCH_TIMEOUT_MS = 15000;
-var CODE_COOLDOWN_MS = 60 * 1000;      // the sign-in service refuses a second code for the same address within a minute
 var SW_WAIT_MS = 4000, SW_TAP_WAIT_MS = 10000;   // how long to wait for the service worker: on load, after a tap
 var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
 
@@ -851,7 +840,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     net: "idle", netMsg: "",           // ok | offline | error
     busy: false,
     session: null,
-    signin: { step: "email", email: "", busy: false }
+    signin: { busy: false }
   };
   var sb = null;
 
@@ -1910,7 +1899,8 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
   function toSignin(message) {
     S.board = null; S.boardAt = 0; S.net = "idle"; S.session = null; S.busy = false;
     P.sub = null; P.hash = ""; P.known = false; P.working = ""; P.testing = false; P.refused = false; P.msg = ""; P.bad = false; pushSeq++;
-    S.screen = "signin"; S.signin = { step: "email", email: S.signin.email, busy: false };
+    S.screen = "signin"; S.signin = { busy: false };
+    clearPassword();
     closeSheet(true);
     render();
     setSigninMsg(message || "", false);
@@ -1920,91 +1910,47 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     m.textContent = text; m.className = "signin-msg" + (isError ? " is-error" : "");
     m.setAttribute("role", isError ? "alert" : "status");
   }
-  /* After a code is sent, and after the service says "too soon", another cannot be asked for until the minute is up.
-     The deadline is a clock time, so the countdown is right after a re-render or a spell in the background. */
-  var cool = { until: 0, timer: null };
-  function coolLeft() { return Math.max(0, Math.ceil((cool.until - Date.now()) / 1000)); }
-  function coolClock(sec) { return Math.floor(sec / 60) + ":" + pad(sec % 60); }
-  function startCool(fresh) {
-    cool.until = fresh ? Date.now() + CODE_COOLDOWN_MS : Math.max(cool.until, Date.now() + CODE_COOLDOWN_MS);
-    if (!cool.timer) cool.timer = setInterval(function () { if (coolLeft() <= 0) stopCool(); if (S.screen === "signin") renderSignin(); }, 1000);
+  /* The password lives in its input and nowhere else. It is emptied, and hidden again, after every attempt. */
+  function showPassword(show) {
+    var pw = $("#signin-password"), t = $("#pw-toggle");
+    pw.type = show ? "text" : "password";
+    t.textContent = show ? "Hide" : "Show";
+    t.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    t.setAttribute("aria-pressed", String(show));
   }
-  function stopCool() { cool.until = 0; if (cool.timer) { clearInterval(cool.timer); cool.timer = null; } }
-  /* "Code sent": what to do, and the one thing not to do, at the moment the email arrives. */
-  function setSigninSent(email) {
-    var m = $("#signin-msg");
-    m.className = "signin-msg"; m.setAttribute("role", "status"); m.textContent = "";
-    m.appendChild(document.createTextNode("Code sent to " + email + ". Type the 6-digit code here. "));
-    var warn = document.createElement("strong"); warn.textContent = "Don’t tap the link in the email:";
-    m.appendChild(warn);
-    m.appendChild(document.createTextNode(" it opens a different app and uses up the code."));
-  }
-  function codeBoxes() { return $$("[data-code-box]"); }
-  function codeValue() { return codeBoxes().map(function (x) { return x.value; }).join(""); }
+  function clearPassword() { $("#signin-password").value = ""; showPassword(false); }
   function renderSignin() {
-    var si = S.signin, codeStep = si.step === "code", wait = coolLeft();
-    $("#screen-signin").classList.toggle("is-code", codeStep);
-    $("#code-step").hidden = !codeStep;
-    $("#signin-links").hidden = !codeStep;
-    var email = $("#signin-email");
-    email.disabled = codeStep || si.busy;
-    $("#signin-btn").disabled = si.busy || (!codeStep && wait > 0);
-    $("#signin-btn").textContent = si.busy ? (codeStep ? "Signing in…" : "Sending…") : (codeStep ? "Sign in" : (wait > 0 ? "Email me a code in " + coolClock(wait) : "Email me a code"));
-    codeBoxes().forEach(function (x) { x.disabled = si.busy; });
-    $$("#signin-links button").forEach(function (x) {
-      var resend = x.getAttribute("data-act") === "resend-code";
-      if (resend) x.textContent = wait > 0 ? "Send a new code in " + coolClock(wait) : "Send a new code";
-      x.disabled = si.busy || (resend && wait > 0);
-    });
+    var busy = S.signin.busy;
+    $("#signin-email").disabled = busy; $("#signin-password").disabled = busy; $("#pw-toggle").disabled = busy;
+    $("#signin-btn").disabled = busy;
+    $("#signin-btn").textContent = busy ? "Signing in…" : "Sign in";
   }
-  function authMessage(err, fallback) {
+  function authMessage(err) {
     if (isNetAuthError(err)) return "Can’t reach the sign-in service. Check your connection and try again.";
     if (err && err.status === 429) return "Too many tries. Wait a minute, then try again.";
-    return fallback;
+    return "That email and password don’t match. Use the same password as your other apps here.";
   }
-  async function requestCode(resend) {
-    var si = S.signin, email = $("#signin-email").value.trim().toLowerCase();
-    if (si.busy || coolLeft() > 0) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setSigninMsg("Enter the email address you use for Tandem.", true); $("#signin-email").focus(); return; }
-    if (!initAuth()) { setSigninMsg("The sign-in library didn’t load. Check your connection, then close and reopen Tandem.", true); return; }
-    si.busy = true; renderSignin(); setSigninMsg("Sending a code…", false);
-    var res;
-    try { res = await sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: false } }); } catch (e) { res = { error: e }; }
-    si.busy = false;
-    if (res.error) {
-      // Too soon after the last one. An earlier code may still be good, so a resend stays on the code step.
-      var tooSoon = !isNetAuthError(res.error) && res.error.status === 429;
-      if (tooSoon) startCool(false);
-      renderSignin();
-      setSigninMsg(tooSoon ? "Wait a minute before asking for another code." : authMessage(res.error, "That address can’t sign in to Tandem."), true);
-      if (resend && si.step === "code") codeBoxes()[0].focus();
-      return;
-    }
-    si.step = "code"; si.email = email;
-    startCool(true);
-    codeBoxes().forEach(function (x) { x.value = ""; });
-    renderSignin();
-    setSigninSent(email);
-    codeBoxes()[0].focus();
-  }
-  async function verifyCode() {
-    var si = S.signin, code = codeValue();
+  async function signIn() {
+    var si = S.signin, emailEl = $("#signin-email"), pwEl = $("#signin-password");
     if (si.busy) return;
-    if (!/^\d{6}$/.test(code)) { setSigninMsg("Enter all 6 digits of the code.", true); return; }
-    si.busy = true; renderSignin(); setSigninMsg("Checking the code…", false);
+    var email = emailEl.value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setSigninMsg("Enter the email address you use for Tandem.", true); emailEl.focus(); return; }
+    if (!pwEl.value) { setSigninMsg("Enter your password.", true); pwEl.focus(); return; }
+    if (!initAuth()) { setSigninMsg("The sign-in library didn’t load. Check your connection, then close and reopen Tandem.", true); return; }
+    si.busy = true; renderSignin(); setSigninMsg("Signing in…", false);
     var res;
-    try { res = await sb.auth.verifyOtp({ email: si.email, token: code, type: "email" }); } catch (e) { res = { error: e }; }
+    try { res = await sb.auth.signInWithPassword({ email: email, password: pwEl.value }); } catch (e) { res = { error: e }; }
+    clearPassword();
     si.busy = false;
     var session = res && res.data ? res.data.session : null;
     if (res.error || !session) {
       renderSignin();
-      setSigninMsg(authMessage(res.error, "That code didn’t work. If you tapped the link in the email, the code is used up: send a new one and type it here."), true);
-      codeBoxes().forEach(function (x) { x.value = ""; }); codeBoxes()[0].focus();
+      setSigninMsg(authMessage(res.error), true);
+      pwEl.focus();
       return;
     }
-    S.session = session; S.signin = { step: "email", email: "", busy: false };
-    stopCool();
-    $("#signin-email").value = "";
+    S.session = session;
+    emailEl.value = "";
     S.screen = "gate"; S.gate = { kind: "loading", message: "" }; S.tab = "pairs";
     render();
     $("#main").focus({ preventScroll: true });
@@ -2038,8 +1984,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     if (act === "close") { closeSheet(); return; }
     if (act === "retry") { loadBoard(); return; }
     if (act === "signout") { signOut(); return; }
-    if (act === "resend-code") { requestCode(true); return; }
-    if (act === "change-email") { stopCool(); S.signin = { step: "email", email: "", busy: false }; renderSignin(); setSigninMsg("", false); $("#signin-email").focus(); return; }
+    if (act === "toggle-password") { showPassword($("#signin-password").type === "password"); return; }
     if (act === "detail" || act === "booked" || act === "notreal") { openPairSheet(act, pid || (sheetPair && sheetPair.id)); return; }
     if (!S.board) return;
     if (act === "alerts-on") { alertsOn(); return; }      // called straight from the tap: it asks permission before anything async
@@ -2080,38 +2025,9 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
       e.preventDefault(); openPairSheet("detail", e.target.getAttribute("data-pair-id"));
     }
   });
-  $("#signin-form").addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (S.signin.busy) return;
-    if (S.signin.step === "code") verifyCode(); else requestCode();
-  });
-  /* Six boxes that behave like one field: typing advances, backspace retreats, a pasted or autofilled code spreads out. */
-  $("#code-row").addEventListener("input", function (e) {
-    var boxes = codeBoxes(), i = boxes.indexOf(e.target);
-    if (i < 0) return;
-    var digits = e.target.value.replace(/\D/g, "");
-    e.target.value = digits.charAt(0);
-    for (var j = 1; j < digits.length && i + j < boxes.length; j++) boxes[i + j].value = digits.charAt(j);
-    var next = Math.min(i + Math.max(digits.length, 0), boxes.length - 1);
-    if (digits.length) boxes[next].focus();
-    if (/^\d{6}$/.test(codeValue())) verifyCode();
-  });
-  $("#code-row").addEventListener("keydown", function (e) {
-    var boxes = codeBoxes(), i = boxes.indexOf(e.target);
-    if (i < 0) return;
-    if (e.key === "Backspace" && !e.target.value && i > 0) { boxes[i - 1].value = ""; boxes[i - 1].focus(); e.preventDefault(); }
-    if (e.key === "ArrowLeft" && i > 0) { boxes[i - 1].focus(); e.preventDefault(); }
-    if (e.key === "ArrowRight" && i < boxes.length - 1) { boxes[i + 1].focus(); e.preventDefault(); }
-  });
-  $("#code-row").addEventListener("paste", function (e) {
-    var text = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "").slice(0, 6);
-    if (!text) return;
-    e.preventDefault();
-    var boxes = codeBoxes();
-    boxes.forEach(function (x, i) { x.value = text.charAt(i) || ""; });
-    boxes[Math.min(text.length, boxes.length) - 1].focus();
-    if (/^\d{6}$/.test(text)) verifyCode();
-  });
+  $("#signin-form").addEventListener("submit", function (e) { e.preventDefault(); signIn(); });
+  /* Show/Hide must not take the caret out of the password field, or the keyboard drops mid-typing. */
+  $("#pw-toggle").addEventListener("mousedown", function (e) { e.preventDefault(); });
 
   /* Refetch when the app comes back to the front, when the phone regains a connection, and every five minutes while visible. */
   function signedInView() { return S.screen !== "signin" && !(S.screen === "gate" && S.gate.kind === "forbidden"); }

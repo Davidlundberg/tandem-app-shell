@@ -25,7 +25,7 @@
  *   - notificationclick: opens the app at the notification's own link, which must be inside this
  *     app's scope; anything else opens the app root.
  */
-var VERSION = "0.2.1";
+var VERSION = "0.2.2";
 var SHELL_CACHE = "tandem-shell-" + VERSION;
 var NAV_NETWORK_TIMEOUT_MS = 3000;
 var SUPABASE_UMD = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js";
