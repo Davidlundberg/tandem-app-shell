@@ -16,8 +16,16 @@
  *     board in memory only and marks it stale when a refresh fails.
  * All shell paths are relative so the precache resolves under any Pages subpath.
  * Cache names carry a tandem- prefix because other apps share this origin.
+ *
+ * Notifications:
+ *   - push: the server sends Declarative Web Push JSON ({"web_push": 8030, "notification": {...}}).
+ *     Newer iPhones show that without waking this worker. When the worker is woken, it shows the same
+ *     notification. Every push ends in showNotification, whatever arrived: a push that shows nothing
+ *     makes Safari take the permission away.
+ *   - notificationclick: opens the app at the notification's own link, which must be inside this
+ *     app's scope; anything else opens the app root.
  */
-var VERSION = "0.1.0";
+var VERSION = "0.2.0";
 var SHELL_CACHE = "tandem-shell-" + VERSION;
 var NAV_NETWORK_TIMEOUT_MS = 3000;
 var SUPABASE_UMD = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js";
@@ -110,4 +118,63 @@ self.addEventListener("fetch", function (e) {
       });
     }));
   }
+});
+
+/* ---------- notifications ---------- */
+var FALLBACK_TITLE = "Tandem — open the app";
+
+/* What to show for a push. Never throws: a payload that is missing, not JSON or the wrong shape gets the fallback. */
+function readPush(data) {
+  var d = null;
+  try { d = data ? data.json() : null; } catch (err) { d = null; }
+  if (d && typeof d === "object" && d.web_push === 8030) d = d.notification;
+  if (!d || typeof d !== "object" || typeof d.title !== "string" || !d.title) return { title: FALLBACK_TITLE, options: { data: { navigate: "" } } };
+  var options = { data: { navigate: typeof d.navigate === "string" ? d.navigate : "" } };
+  if (typeof d.body === "string") options.body = d.body;
+  if (typeof d.tag === "string" && d.tag) options.tag = d.tag;
+  if (d.silent === true) options.silent = true;
+  return { title: d.title, options: options };
+}
+
+/* The link a notification may open: same origin and inside this app's scope, else the app root. */
+function appUrl(navigate) {
+  var scope = self.registration.scope;
+  if (typeof navigate !== "string" || !navigate) return scope;
+  try {
+    var u = new URL(navigate, scope);
+    if (u.origin !== self.location.origin || u.href.indexOf(scope) !== 0) return scope;
+    return u.href;
+  } catch (err) { return scope; }
+}
+function tabOf(url) {
+  var i = url.indexOf("#"), tab = i >= 0 ? url.slice(i + 1) : "";
+  return tab === "pairs" || tab === "dates" || tab === "watch" ? tab : "";
+}
+
+self.addEventListener("push", function (e) {
+  var n = readPush(e.data);
+  e.waitUntil(
+    Promise.resolve().then(function () { return self.registration.showNotification(n.title, n.options); })
+      .catch(function () { return self.registration.showNotification(FALLBACK_TITLE); })
+  );
+});
+
+self.addEventListener("notificationclick", function (e) {
+  var note = e.notification;
+  note.close();
+  var url = appUrl(note && note.data ? note.data.navigate : ""), scope = self.registration.scope;
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+      var open = null;
+      for (var i = 0; i < list.length; i++) { if (String(list[i].url).indexOf(scope) === 0) { open = list[i]; break; } }
+      if (!open) return self.clients.openWindow(url);
+      // Already open: bring it forward and take it to the link. If it cannot be navigated, name the tab instead.
+      return Promise.resolve().then(function () { return open.focus(); }).catch(function () { return open; }).then(function (c) {
+        var client = c || open;
+        var tell = function () { if (tabOf(url)) client.postMessage({ tandem: "route", tab: tabOf(url) }); };
+        if (typeof client.navigate !== "function") { tell(); return null; }
+        return client.navigate(url).catch(function () { tell(); return null; });
+      });
+    }).catch(function () { return self.clients.openWindow(url); })
+  );
 });

@@ -17,7 +17,7 @@
 <!-- CSP: the sha256 value is the one inline script (id="tandem-js"). Any edit to that script changes
      its hash; tools/publish_shell.sh refuses to publish until it matches and prints the right value.
      connect-src is the Supabase project only: sign-in and the travel-api function. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https://umimaxkucnugmkifenyg.supabase.co; script-src https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js 'sha256-65qvEyPTfiA5nJbtTqMgJYyp/vv4ypsFyVPSKJYCynQ='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https://umimaxkucnugmkifenyg.supabase.co; script-src https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js 'sha256-lGbaYU9mpi0K7Scl31Pcn66kcKW67fxUdtOJTf6KgCs='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="static/icon.svg" type="image/svg+xml">
 <link rel="icon" href="static/icon-192.png" sizes="192x192" type="image/png">
@@ -537,6 +537,19 @@ h1, h2, h3 { text-wrap: balance; }
 .tier-valid.tier-lapsed { color: var(--danger); font-weight: 600; }
 .account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
 .account-row span { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Alerts on this phone: the card, and the one-line hint that sits close under it. */
+.alerts-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.alerts-state { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.alerts-state b { display: flex; align-items: center; gap: 9px; font-size: 15px; overflow-wrap: anywhere; }
+.alerts-state small { font-size: 12px; color: var(--muted); padding-left: 17px; overflow-wrap: anywhere; }
+.alerts-led { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--full-solid); box-shadow: 0 0 0 3px var(--full-wash); }
+.alerts-actions { display: flex; align-items: center; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
+.alerts-actions .text-btn { margin-right: -4px; }
+.panel p.alerts-msg { font-size: 13.5px; color: var(--full); font-weight: 600; }
+.panel p.alerts-msg.is-bad { color: var(--danger); }
+.panel p.alerts-watchdog { border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; color: var(--muted); }
+.panel p.alerts-watchdog.is-stale { color: var(--check); font-weight: 600; }
+.alerts-hint { padding: 0 4px; overflow-wrap: anywhere; }
 
 /* ---------- Sign in ---------- */
 .signin { flex: 1 0 auto; padding: calc(56px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 28px; }
@@ -743,16 +756,20 @@ h1, h2, h3 { text-wrap: balance; }
    written into this file; tools/publish_shell.sh refuses to publish if it is.
    The board lives in memory only. It is never written to localStorage.
    ========================================================================== */
-var APP_VERSION = "0.1.0";            // lockstep with VERSION in sw.js
+var APP_VERSION = "0.2.0";            // lockstep with VERSION in sw.js
 var TANDEM_SUPABASE = {               // publishable key: public by design; the function checks the user
   url: "https://umimaxkucnugmkifenyg.supabase.co",
   key: "sb_publishable_1wJlFgMwGiOwb7-viFNfeg_qczcRsBx"
 };
 var API_BASE = TANDEM_SUPABASE.url + "/functions/v1/travel-api";
 var LS_AUTH = "tandem.auth.v1";       // own key: other apps share this origin
+var LS_PUSH_OFF = "tandem.push.off.v1"; // "alerts turned off on this phone": a choice, not board data
+var LS_PUSH_GONE = "tandem.push.gone.v1"; // a turned-off endpoint the server has not been told about yet: the endpoint only
+var STALE_MS = 3 * 60 * 60 * 1000;    // a last good check older than this is not current (the watcher's own rule)
 var KEY_DAILY_CALLS = 1000;           // the seats.aero key's daily allowance: the call meter's fixed scale
 var REFRESH_MS = 5 * 60 * 1000;
 var FETCH_TIMEOUT_MS = 15000;
+var SW_WAIT_MS = 4000, SW_TAP_WAIT_MS = 10000;   // how long to wait for the service worker: on load, after a tap
 var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
 
 (function () {
@@ -839,7 +856,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     return {
       version: str(raw.version), now: str(raw.now),
       attribution: obj(raw.attribution),
-      watch: raw.watch, health: raw.health,
+      watch: raw.watch, health: raw.health, push: obj(raw.push),
       pairs: arr(raw.pairs).filter(function (p) { return p && typeof p === "object"; }),
       days: { out: arr(days.out).filter(dayOk), back: arr(days.back).filter(dayOk) }
     };
@@ -857,16 +874,33 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     if (neverRan(b)) return "first";
     if (hs === "blind") return "blind";
     if (hs === "stale") return "stale";
-    if (!HEALTH_STATES[hs] || hs === "error") return "error";
+    if (!HEALTH_STATES[hs] || hs === "error") return alertsDead(b) ? (isCurrent(b) ? "alertsoff" : "stale") : "error";
     if (needsSetup(b)) return "setup";
     return "ok";
   }
+  /* What the server says about alerts: whether it can send at all, its public key, and one row per subscribed phone. */
+  function pushOf(b) {
+    var p = obj(b.push), key = str(p.public_key);
+    return { available: p.available === true && !!key, key: key, subs: arr(p.subscriptions).filter(function (x) { return x && typeof x === "object"; }) };
+  }
+  function allSubsDead(b) { var subs = pushOf(b).subs; return subs.length > 0 && subs.every(function (x) { return x.dead === true; }); }
+  /* Current: the last good check is recent enough to be read as now, whatever the headline says. */
+  function isCurrent(b) { var ok = ts(b.health.last_ok_at); return ok != null && nowOf(b) - ok <= STALE_MS; }
+  /* The headline for the header and the trouble banner. When the page itself decided the board is stale (the server
+     named another problem), it says how old the last good check is instead of repeating that other headline. */
+  function headOf(b, mode) {
+    var h = b.health;
+    if (mode === "stale" && h.state !== "stale") return ts(h.last_ok_at) != null ? "No check since " + fmtWhen(h.last_ok_at, nowOf(b)) : "No recent check";
+    return str(h.headline);
+  }
+  /* The watcher is fine and only the alert channel is dead. Shown as current only when isCurrent(b) agrees. */
+  function alertsDead(b) { return b.health.state === "error" && allSubsDead(b) && /^alerts are off/i.test(str(b.health.headline)); }
   function needsSetup(b) { return b.health.state === "setup" || obj(b.health.delivery).configured === false; }
   /* Before the watcher's first run there is no check to be late, wrong or empty: nothing has been looked at yet.
      That is its own calm state, never a failure and never a finding. */
   function neverRan(b) { return ts(b.health.last_run_at) == null && ts(b.health.last_ok_at) == null; }
   /* "Clean" means the watcher's last reading can be read as the truth. Only then may the page say nothing was found. */
-  function isClean(b) { var m = modeOf(b); return (m === "ok" || m === "setup" || m === "paused") && !neverRan(b) && S.net === "ok"; }
+  function isClean(b) { var m = modeOf(b); return (m === "ok" || m === "setup" || m === "alertsoff" || m === "paused") && !neverRan(b) && S.net === "ok"; }
   function isDim(b) { var m = modeOf(b); return m === "blind" || m === "stale" || m === "error" || S.net !== "ok"; }
   /* A seat count the page may show as a count: a positive number that was read for this trip itself.
      A "sibling" count was read from another flight combination, so it is never shown as this trip's own. */
@@ -1016,12 +1050,22 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
   }
   function troubleBanner(b, mode) {
     var h = b.health, lastOk = ts(h.last_ok_at) != null ? " Last good check: " + fmtWhen(h.last_ok_at, nowOf(b)) + "." : "";
-    var title = str(h.headline) || (mode === "stale" ? "No recent check" : "Something went wrong with the last check");
+    var title = headOf(b, mode) || (mode === "stale" ? "No recent check" : "Something went wrong with the last check");
     var body = mode === "stale" ? "Tandem hasn’t finished a check recently, so what follows may be out of date." : "The watcher reported a problem, so what follows may be out of date.";
     return '<div class="banner banner-danger" role="alert" data-banner="' + mode + '"><strong>' + esc(title) + "</strong><p>" + body + lastOk + "</p></div>";
   }
-  function setupBanner() {
-    return '<div class="banner banner-warn" data-banner="setup"><strong>Alerts not connected yet</strong><p>Tandem is watching, but it can’t push to your phone until the alert channel is connected. Anything it finds still shows here.</p></div>';
+  function setupBanner(b, onWatch) {
+    if (pushOf(b).available) {
+      return '<div class="banner banner-warn" data-banner="setup"><strong>Turn on alerts on this phone</strong><p>Tandem is watching, but it can’t notify you until alerts are on. ' +
+        (onWatch ? "See the Alerts card below." : "Turn them on from the Watch tab.") + " Anything it finds still shows here.</p></div>";
+    }
+    return '<div class="banner banner-warn" data-banner="setup"><strong>Alerts not connected yet</strong><p>Tandem is watching, but it can’t notify you until alerts are set up on the server. Anything it finds still shows here.</p></div>';
+  }
+  /* Every subscription is dead. Only a current board may add that Tandem is still checking. */
+  function alertsOffBanner(b, onWatch, current) {
+    return '<div class="banner banner-danger" role="alert" data-banner="alertsoff"><strong>Alerts are off on this phone</strong><p>' +
+      (current ? "Tandem is still checking every hour, but nothing it finds can reach you. " : "Nothing Tandem finds can reach you until alerts are back on. ") +
+      (onWatch ? "See the Alerts card below to turn them back on." : "Open the Watch tab to turn alerts back on.") + "</p></div>";
   }
   function bookedBanner(b) {
     var w = b.watch, o = legOf(w.booked_out_leg), r = legOf(w.booked_back_leg);
@@ -1059,7 +1103,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
       return;
     }
     if (S.net !== "ok") { setHealth("health-paused", (S.net === "offline" ? "Offline" : "Couldn’t refresh") + " · showing the " + fmtWhen(new Date(S.boardAt).toISOString(), Date.now()) + " board"); return; }
-    var h = b.health, mode = modeOf(b), now = nowOf(b), head = str(h.headline), calls = num(h.calls_remaining);
+    var h = b.health, mode = modeOf(b), now = nowOf(b), head = headOf(b, mode), calls = num(h.calls_remaining);
     var tail = calls != null && !/calls left/i.test(head) ? " · " + full(calls) + " calls left" : "";
     if (mode === "paused") { setHealth("health-paused", "Paused · no checks or alerts until you resume"); return; }
     if (mode === "first") { setHealth("health-paused", "First check pending" + tail); return; }
@@ -1069,9 +1113,9 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
       setHealth("health-blind", head + tail); return;
     }
     if (mode === "stale") { setHealth("health-blind", (head || "No recent check") + tail); return; }
-    if (mode === "error") { setHealth("health-blind", (head || "Problem with the last check") + tail); return; }
+    if (mode === "error" || mode === "alertsoff") { setHealth("health-blind", (head || "Problem with the last check") + tail); return; }
     if (!head) head = ts(h.last_run_at) != null ? "Checked " + agoFrom(h.last_run_at, now) + " ago" : "Watching";
-    if (mode === "setup") { setHealth("health-warn", /alert/i.test(head) ? head : head + " · alerts not connected"); return; }
+    if (mode === "setup") { setHealth("health-warn", /alert/i.test(head) ? head : head + (pushOf(b).available ? " · alerts are off" : " · alerts not connected")); return; }
     setHealth("", head + tail + (obj(h.canary).ok === true ? " · canary ok" : ""));
   }
   function creditHtml(extra) {
@@ -1175,7 +1219,8 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     if (mode === "paused") html += pausedBanner();
     if (mode === "blind") html += blindBanner(b);
     if (mode === "stale" || mode === "error") html += troubleBanner(b, mode);
-    if (needsSetup(b)) html += setupBanner();
+    if (allSubsDead(b)) html += alertsOffBanner(b, false, mode === "alertsoff");
+    else if (needsSetup(b)) html += setupBanner(b, false);
     html += bookedBanner(b);
     var w = b.watch, bothBooked = legOf(w.booked_out_leg) && legOf(w.booked_back_leg);
     if (b.pairs.length) {
@@ -1293,6 +1338,65 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     return '<button class="dir-btn" type="button" role="tab" data-dir-pick="' + dir + '" data-fk="dir:' + dir + '" aria-selected="' + (S.dir === dir) + '"><b>' + label + "</b><small>" + range + "</small></button>";
   }
 
+  /* ---------- Alerts on this phone (Web Push) ----------
+     P is this phone's side: the service worker registration, the browser's own subscription, and the short
+     hash that finds its row in board.push. It is read again on every launch and never stored. The one thing
+     kept is the choice "turned off on this phone", so a silent repair does not undo it. */
+  var P = { reg: null, sub: null, hash: "", known: false, working: "", testing: false, refused: false, telling: false, msg: "", bad: false };
+  var pushSeq = 0;
+  function pushCapable() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+  function isStandalone() { return navigator.standalone === true || !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches); }
+  function pushPerm() { try { return String(Notification.permission); } catch (e) { return "default"; } }
+  function pushOff() { try { return localStorage.getItem(LS_PUSH_OFF) === "1"; } catch (e) { return false; } }
+  function setPushOff(on) { try { if (on) localStorage.setItem(LS_PUSH_OFF, "1"); else localStorage.removeItem(LS_PUSH_OFF); } catch (e) { /* storage refused: the choice lasts for this launch */ } }
+  function pushGone() { try { return str(localStorage.getItem(LS_PUSH_GONE)); } catch (e) { return ""; } }
+  function setPushGone(endpoint) { try { if (endpoint) localStorage.setItem(LS_PUSH_GONE, endpoint); else localStorage.removeItem(LS_PUSH_GONE); } catch (e) { /* storage refused: the server finds out on its next send */ } }
+  function pushRow(b) {
+    if (!P.hash) return null;
+    var subs = pushOf(b).subs;
+    for (var i = 0; i < subs.length; i++) if (str(subs[i].endpoint_hash) === P.hash) return subs[i];
+    return null;
+  }
+  function alertsState(b) {
+    if (!pushCapable()) return isStandalone() ? "old" : "install";
+    if (!pushOf(b).available) return "server";
+    if (pushPerm() === "denied") return "blocked";
+    if (P.working) return "working";
+    if (!P.known) return "checking";
+    var row = pushRow(b);
+    return P.sub && row && row.dead !== true ? "on" : "off";
+  }
+  function alertsSig() { var b = S.board; return b ? alertsState(b) + "|" + P.hash + "|" + P.msg : ""; }
+  function watchdogLine(b) {
+    var wd = obj(b.health.watchdog);
+    if (wd.configured !== true) return "";
+    var seen = ts(wd.last_seen_at) != null ? fmtWhen(wd.last_seen_at, nowOf(b)) : "", stale = wd.stale === true || !seen;   // never looked: nobody is looking
+    var text = !seen ? "Watchdog has not looked yet" : (stale ? "Watchdog has not looked since " + seen : "Watchdog last looked " + seen);
+    return '<p class="alerts-watchdog' + (stale ? " is-stale" : "") + '" data-note="watchdog">' + text + "</p>";
+  }
+  function alertsCard(b) {
+    var st = alertsState(b), body;
+    if (st === "install") body = "<p>Add Tandem to your Home Screen to get alerts: Share → Add to Home Screen, then open it from there.</p>";
+    else if (st === "old") body = "<p>This phone cannot receive alerts from web apps (needs iOS 16.4 or later).</p>";
+    else if (st === "server") body = "<p>Alerts are not set up on the server yet.</p>";
+    else if (st === "blocked") body = '<p><strong class="stat-bad">Alerts are blocked for Tandem.</strong> Turn them on in Settings → Notifications → Tandem.</p>';
+    else if (st === "checking") body = '<p class="fine">Checking alerts on this phone…</p>';
+    else if (st === "working") body = "<p>" + (P.working === "off" ? "Turning alerts off…" : "Turning alerts on…") + "</p>";
+    else if (st === "on") {
+      var row = pushRow(b), last = ts(row.last_ok_at) != null ? "Last delivered " + fmtWhen(row.last_ok_at, nowOf(b)) : "Nothing sent to this phone yet";
+      body = '<div class="alerts-state"><b><span class="alerts-led" aria-hidden="true"></span>Alerts are on for this phone</b><small>' + last + "</small></div>" +
+        '<div class="alerts-actions"><button class="btn btn-quiet" type="button" data-act="alerts-test" data-fk="alerts-test"' + (P.testing ? " disabled" : "") + ">" + (P.testing ? "Sending…" : "Send a test") + "</button>" +
+        '<button class="text-btn" type="button" data-act="alerts-off" data-fk="alerts-off"' + (P.testing ? " disabled" : "") + ">Turn off on this phone</button></div>";
+    } else {
+      body = "<p>Get a notification on this phone when Tandem finds seats, and when it runs into trouble.</p>" +
+        '<button class="btn btn-primary btn-wide" type="button" data-act="alerts-on" data-fk="alerts-on">Turn on alerts</button>';
+    }
+    var msg = P.msg && st !== "working" && st !== "checking" ? '<p class="alerts-msg' + (P.bad ? " is-bad" : "") + '" role="status" data-note="alerts-msg">' + esc(P.msg) + "</p>" : "";
+    return '<div class="alerts-wrap"><div class="panel" data-panel="alerts" data-alerts="' + st + '"><div class="section-head"><h3>Alerts</h3><span>this phone</span></div>' +
+      body + msg + watchdogLine(b) + "</div>" +
+      (st === "on" ? '<p class="fine alerts-hint" data-note="focus">Using a Focus? Add Tandem to its allowed apps or finds stay silent.</p>' : "") + "</div>";
+  }
+
   /* ---------- Watch ---------- */
   function statRow(key, val, cls) { return '<div class="stat-row"><span class="stat-key">' + key + '</span><span class="stat-val' + (cls ? " " + cls : "") + '">' + val + "</span></div>"; }
   function ruleRow(key, val, loud) { return '<div class="stat-row"><span class="stat-key">' + key + '</span><span class="prio' + (loud ? " prio-loud" : "") + '">' + val + "</span></div>"; }
@@ -1302,11 +1406,14 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     var html = staleBanner(b);
     if (mode === "blind") html += blindBanner(b);
     if (mode === "stale" || mode === "error") html += troubleBanner(b, mode);
-    if (needsSetup(b)) html += setupBanner();
+    if (allSubsDead(b)) html += alertsOffBanner(b, true, mode === "alertsoff");
+    else if (needsSetup(b)) html += setupBanner(b, true);
 
     html += '<div class="panel" data-panel="pause"><div class="switch-row"><div><b>' + (paused ? "Paused" : "Watching every hour") + "</b><small>" +
       (paused ? "No calls, no alerts. Your seats.aero quota is untouched." : "Runs in the cloud once an hour. Your laptop can sleep.") + "</small></div>" +
       '<button class="switch" type="button" id="pause-switch" data-act="toggle-pause" data-fk="pause" role="switch" aria-checked="' + String(!paused) + '" aria-label="Watching"' + (S.busy ? " disabled" : "") + "></button></div></div>";
+
+    html += alertsCard(b);
 
     var valid = w.tier_valid_through, tierLine;
     if (isDate(valid)) {
@@ -1338,14 +1445,14 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
         (ts(h.quota_resets_at) != null ? "<span>resets " + fmtWhen(h.quota_resets_at, now) + "</span>" : "") + "</div>";
       html += '<p class="fine">The bar is the key’s ' + full(KEY_DAILY_CALLS) + " calls a day." + (ceiling != null ? " The tick marks Tandem’s own ceiling, " + full(ceiling) + " a day." : "") + " Under 150 left on the key it stops re-checks; under 50 it pauses until the reset.</p>";
     }
-    var can = obj(h.canary), mon = obj(h.monitor), del = obj(h.delivery), hb = obj(h.heartbeat), pt = obj(h.pushes_today), smoke = obj(h.smoke);
+    var can = obj(h.canary), del = obj(h.delivery), hb = obj(h.heartbeat), pt = obj(h.pushes_today), smoke = obj(h.smoke), wd = obj(h.watchdog);
     html += '<div class="stat-list">';
     if (ts(h.last_run_at) != null) html += statRow("Last check", agoFrom(h.last_run_at, now) + " ago");
-    if (mode !== "ok" && mode !== "setup" && ts(h.last_ok_at) != null) html += statRow("Last good check", fmtWhen(h.last_ok_at, now));
+    if (mode !== "ok" && mode !== "setup" && mode !== "alertsoff" && ts(h.last_ok_at) != null) html += statRow("Last good check", fmtWhen(h.last_ok_at, now));
     html += statRow("Canary", esc(str(can.text) || (can.ok === true ? "ok" : can.ok === false ? "failed" : "not run yet")), can.ok === false ? "stat-bad" : "");
-    html += statRow("Outside monitor", paused ? "paused with the watch" : mon.configured === false ? "not connected yet" : (ts(mon.last_ping_at) != null ? "pinged " + agoFrom(mon.last_ping_at, now) + " ago · alerts after 3h of silence" : "connected · no ping yet"), !paused && mon.configured === false ? "stat-warn" : "");
     var delText, delCls = "";
-    if (del.configured === false) { delText = "Alerts not connected yet"; delCls = "stat-warn"; }
+    if (allSubsDead(b)) { delText = "no phone can receive alerts"; delCls = "stat-bad"; }
+    else if (del.configured === false) { delText = pushOf(b).available ? "Alerts not turned on yet" : "Alerts not connected yet"; delCls = "stat-warn"; }
     else if (del.failing === true) { delText = "failing" + (ts(del.last_push_at) != null ? " · last try " + fmtWhen(del.last_push_at, now) : ""); delCls = "stat-bad"; }
     else if (ts(del.last_push_at) != null) { delText = "last push " + fmtWhen(del.last_push_at, now) + (del.last_status === "sent" ? " · delivered" : del.last_status === "failed" ? " · failed" : ""); if (del.last_status === "failed") delCls = "stat-bad"; }
     else delText = "connected · nothing sent yet";
@@ -1359,13 +1466,13 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     if (str(smoke.text)) html += statRow("Test watch", esc(smoke.text));
     html += "</div></div>";
 
-    html += '<div class="panel" data-panel="rules"><div class="section-head"><h3>Alerts</h3><span>' + (del.configured === false ? "not connected yet" : "via Pushover") + '</span></div><div class="stat-list">' +
+    html += '<div class="panel" data-panel="rules"><div class="section-head"><h3>Alert rules</h3><span>' + (del.configured === false || allSubsDead(b) ? "alerts are off" : "alerts are on") + '</span></div><div class="stat-list">' +
       ruleRow(pax + " seats both ways", "pushes at once, 7 AM–11 PM", true) +
       ruleRow("Found overnight", "waits for 7 AM") +
       ruleRow("Verify " + pax + " · one way", "7:30 AM digest") +
       ruleRow("First " + (cap || "saver seat") + " of the season", "one push, once") +
       ruleRow("Problems", "once a day at most") +
-      ruleRow("Runs stop", "outside monitor, 3h") +
+      ruleRow("Runs stop", wd.configured === true ? "watchdog email" : "no watchdog yet") +
       ruleRow("Still watching", "Sundays, silent") +
       '</div><p class="fine">Times are Eastern. The digest goes out only on days with news. At most 3 hit pushes a day; extras wait for the digest. A pair pushes again only if it becomes ' + pax + " seats both ways, drops 10%, or comes back after 24 hours gone.</p></div>";
 
@@ -1417,7 +1524,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
   }
   function goTab(tab, focusTitle) {
     if (tab !== "pairs" && tab !== "dates" && tab !== "watch") return;
-    S.tab = tab; closeSheet(true); render(); window.scrollTo(0, 0);
+    S.tab = tab; P.msg = ""; closeSheet(true); render(); window.scrollTo(0, 0);
     if (focusTitle) { var t = $("#" + tab + "-title"); if (t) t.focus({ preventScroll: true }); }
   }
 
@@ -1564,7 +1671,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     return data;
   }
   var inflight = null, lastTry = 0;
-  function loadBoard() {
+  function loadBoard(noRepair) {
     if (inflight) return inflight;
     lastTry = Date.now();
     inflight = (async function () {
@@ -1580,6 +1687,8 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
         else { S.net = "error"; S.netMsg = e.kind === "error" ? e.message : ""; if (!S.board) { S.screen = "gate"; S.gate = { kind: "error", message: S.netMsg }; } }
       }
       render();
+      // A repair is tried once per board load; the reload that follows a repair does not try again.
+      if (S.board && S.screen === "app" && S.net === "ok") { tellGone(); syncPush(!noRepair); }
     })();
     var done = function () { inflight = null; };
     inflight.then(done, done);
@@ -1608,6 +1717,176 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     }
   }
 
+  /* ---------- alerts: subscribe, repair, test, turn off ---------- */
+  function keyBytes(b64) {
+    var t = String(b64).replace(/-/g, "+").replace(/_/g, "/");
+    while (t.length % 4) t += "=";
+    var raw = atob(t), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  function subscribeOptions(b) { return { userVisibleOnly: true, applicationServerKey: keyBytes(pushOf(b).key) }; }
+  /* First 16 hex of sha256(endpoint): how this phone finds its own row without the server ever returning an endpoint. */
+  async function endpointHash(endpoint) {
+    var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(endpoint)));
+    return Array.prototype.map.call(new Uint8Array(buf).subarray(0, 8), function (x) { return (x < 16 ? "0" : "") + x.toString(16); }).join("");
+  }
+  function swReady(ms) {
+    if (P.reg) return Promise.resolve(P.reg);
+    return new Promise(function (res) {
+      var timer = setTimeout(function () { res(null); }, ms);
+      navigator.serviceWorker.ready.then(function (r) { clearTimeout(timer); P.reg = r || null; res(P.reg); }, function () { clearTimeout(timer); res(null); });
+    });
+  }
+  function subBody(sub) {
+    var j = typeof sub.toJSON === "function" ? obj(sub.toJSON()) : {}, k = obj(j.keys);
+    return { endpoint: String(sub.endpoint), keys: { p256dh: str(k.p256dh), auth: str(k.auth) } };
+  }
+  function focusAlerts(fk) {
+    if (S.screen !== "app" || S.tab !== "watch" || !$("#sheet").hidden) return;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    if (!focusKey(fk)) $("#main").focus({ preventScroll: true });
+  }
+  var EXPIRED = "Your sign-in expired. Enter your email for a new code.";
+  /* After every board load: read this phone's subscription, find its row, and repair it once if the two disagree. */
+  async function syncPush(repair) {
+    var b = S.board;
+    if (!b || !pushCapable() || !pushOf(b).available) return;
+    var seq = ++pushSeq, before = alertsSig();
+    var reg = await swReady(SW_WAIT_MS), sub = null, hash = "";
+    if (reg) { try { sub = await reg.pushManager.getSubscription(); if (sub) hash = await endpointHash(sub.endpoint); } catch (e) { sub = null; hash = ""; } }
+    b = S.board;
+    if (seq !== pushSeq || !b || P.working) return;
+    P.sub = sub; P.hash = hash; P.known = true;
+    var row = pushRow(b), perm = pushPerm(), need = "";
+    if (repair && reg && perm !== "denied" && !pushOff() && !P.refused) {
+      if (sub && !row) need = "post";                          // the server has no row for this phone: send it again
+      else if (sub && row.dead === true) need = "renew";       // the push service dropped it: take a new one
+      else if (!sub && perm === "granted") need = "renew";     // allowed, but the browser lost it: no tap is needed
+    }
+    if (!need) { if (alertsSig() !== before) render(); return; }
+    P.working = "on"; render();
+    var expired = false;
+    try {
+      if (need === "renew") {
+        if (sub) { try { await sub.unsubscribe(); } catch (e) { /* a dead one may refuse; a new one is taken anyway */ } }
+        P.sub = null; P.hash = ""; sub = null;
+        sub = await reg.pushManager.subscribe(subscribeOptions(b));
+        P.sub = sub; P.hash = await endpointHash(sub.endpoint);
+      }
+      await api("POST", "/push/subscribe", subBody(sub));
+    } catch (e) {
+      // The card falls back to "Turn on alerts". Nothing more is tried until the next board load,
+      // and nothing at all once the server has refused this device's kind of subscription.
+      expired = !!e && e.kind === "signedout";
+      if (e && e.kind === "error" && e.status === 400) P.refused = true;
+      P.working = "";
+      if (expired) toSignin(EXPIRED); else render();
+      return;
+    }
+    P.working = "";
+    if (inflight) await inflight;
+    await loadBoard(true);
+  }
+  /* A turn-off the server never heard about: tell it on each board load until it answers. Without this the row
+     would linger, go dead on the next send and read as a fault, when it was a choice. */
+  async function tellGone() {
+    var endpoint = pushGone();
+    if (!endpoint || P.telling || P.working) return;
+    P.telling = true;
+    try { await api("POST", "/push/unsubscribe", { endpoint: endpoint }); }
+    catch (e) {
+      P.telling = false;
+      if (e.kind === "signedout") { toSignin(EXPIRED); return; }
+      // A refusal that will never change (not sign-in, not a rate limit) is not retried for ever.
+      if (e.kind === "error" && e.status >= 400 && e.status < 500 && e.status !== 429 && pushGone() === endpoint) setPushGone("");
+      return;
+    }
+    P.telling = false;
+    if (pushGone() === endpoint) setPushGone("");
+    if (inflight) await inflight;
+    await loadBoard(true);
+  }
+  function alertsOn() {
+    var b = S.board;
+    if (!b || P.working) return;
+    var opts, asked;
+    try { opts = subscribeOptions(b); } catch (e) { P.msg = "Couldn’t turn on alerts: the server sent a key this phone can’t read."; P.bad = true; render(); return; }
+    // Asked first, inside the tap itself. Nothing is awaited before this line, or the phone stops counting the tap.
+    try { asked = Notification.requestPermission(); } catch (e) { asked = Promise.reject(e); }
+    P.working = "on"; P.msg = ""; P.bad = false; pushSeq++;
+    setPushOff(false);
+    render();
+    Promise.resolve(asked).then(async function (answer) {
+      if ((answer || pushPerm()) !== "granted") throw fail("blocked");
+      var reg = await swReady(SW_TAP_WAIT_MS);
+      if (!reg) throw fail("nosw");
+      var sub = await reg.pushManager.subscribe(opts);
+      P.sub = sub; P.hash = await endpointHash(sub.endpoint); P.known = true;
+      if (pushGone() === String(sub.endpoint)) setPushGone("");
+      await api("POST", "/push/subscribe", subBody(sub));
+      P.refused = false;
+      return null;
+    }).catch(function (e) { return e || fail("error"); }).then(async function (err) {
+      P.working = "";
+      if (err && err.kind === "signedout") { toSignin(EXPIRED); return; }
+      if (err) {
+        P.bad = true;
+        if (err.kind === "blocked") P.msg = pushPerm() === "denied" ? "" : "Alerts were not allowed. Tap Turn on alerts again and choose Allow.";
+        else if (err.kind === "nosw") P.msg = "Tandem isn’t ready for alerts yet. Close and reopen the app, then try again.";
+        else if (err.kind === "offline") P.msg = "This phone is offline. Alerts are not on yet.";
+        else if (err.kind === "error" && err.status === 400) { P.refused = true; P.msg = "This device can’t receive Tandem alerts. Use the iPhone Home Screen app."; }   // the server takes iPhone subscriptions only
+        else if (err.kind === "error" || err.kind === "forbidden") P.msg = err.message && err.message !== err.kind ? err.message : "Couldn’t turn on alerts. Try again.";
+        else P.msg = "Couldn’t turn on alerts on this phone. Try again.";
+      }
+      if (inflight) await inflight;
+      await loadBoard(true);
+      focusAlerts(err ? "alerts-on" : "alerts-test");
+    });
+  }
+  async function alertsTest() {
+    if (P.testing || P.working) return;
+    P.testing = true; P.msg = ""; P.bad = false; render();
+    var again = false;
+    try {
+      var r = obj(await api("POST", "/push/test"));
+      // Accepted by the server but delivered to no phone: the subscription has just died. Same as "none is live".
+      if (num(r.sent) === 0) { P.bad = true; again = true; P.msg = "The test didn’t reach this phone. Tandem is checking its alerts again."; }
+      else P.msg = "Sent. It should arrive within a few seconds.";
+    } catch (e) {
+      if (e.kind === "signedout") { P.testing = false; toSignin(EXPIRED); return; }
+      P.bad = true; again = e.status === 409;
+      P.msg = e.kind === "offline" ? "This phone is offline. No test was sent." : (e.message && e.message !== e.kind ? e.message : "Couldn’t send a test. Try again.");
+    }
+    P.testing = false; render();
+    focusAlerts("alerts-test");
+    // No phone is subscribed, or none could be reached: read the board again so this phone can repair itself.
+    if (again) { if (inflight) await inflight; await loadBoard(); focusAlerts("alerts-on"); }
+  }
+  async function alertsOff() {
+    if (P.working || P.testing) return;
+    var sub = P.sub, endpoint = sub ? String(sub.endpoint) : "";
+    P.working = "off"; P.msg = ""; P.bad = false; pushSeq++;
+    setPushOff(true);
+    render();
+    try { if (sub) await sub.unsubscribe(); } catch (e) { /* the server is told either way */ }
+    P.sub = null; P.hash = "";
+    var expired = false;
+    // Noted before the call and cleared when the server answers, so a turn-off the server never heard about
+    // (offline, or the app closed mid-call) is told again on the next board load.
+    if (endpoint) setPushGone(endpoint);
+    try { if (endpoint) { await api("POST", "/push/unsubscribe", { endpoint: endpoint }); setPushGone(""); } }
+    catch (e) {
+      expired = e.kind === "signedout";
+      P.bad = true; P.msg = "Alerts are off on this phone. Tandem’s server couldn’t be told yet; this phone tells it the next time it connects.";
+    }
+    P.working = "";
+    if (expired) { toSignin(EXPIRED); return; }
+    if (inflight) await inflight;
+    await loadBoard(true);
+    focusAlerts("alerts-on");
+  }
+
   /* ---------- auth ---------- */
   function initAuth() {
     if (sb) return true;
@@ -1624,6 +1903,7 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
   }
   function toSignin(message) {
     S.board = null; S.boardAt = 0; S.net = "idle"; S.session = null; S.busy = false;
+    P.sub = null; P.hash = ""; P.known = false; P.working = ""; P.testing = false; P.refused = false; P.msg = ""; P.bad = false; pushSeq++;
     S.screen = "signin"; S.signin = { step: "email", email: S.signin.email, busy: false };
     closeSheet(true);
     render();
@@ -1721,6 +2001,9 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
     if (act === "change-email") { S.signin = { step: "email", email: "", busy: false }; renderSignin(); setSigninMsg("", false); $("#signin-email").focus(); return; }
     if (act === "detail" || act === "booked" || act === "notreal") { openPairSheet(act, pid || (sheetPair && sheetPair.id)); return; }
     if (!S.board) return;
+    if (act === "alerts-on") { alertsOn(); return; }      // called straight from the tap: it asks permission before anything async
+    if (act === "alerts-test") { alertsTest(); return; }
+    if (act === "alerts-off") { alertsOff(); return; }
     var w = S.board.watch;
     if (act === "toggle-pause") {
       var pausing = modeOf(S.board) !== "paused";
@@ -1797,10 +2080,25 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
   window.addEventListener("online", function () { if (signedInView()) loadBoard(); });
   setInterval(function () { if (document.visibilityState === "visible" && signedInView()) loadBoard(); }, REFRESH_MS);
 
+  /* ---------- routes: #pairs, #dates, #watch ----------
+     A notification opens the app at one of these. The hash is cleared once read, so the same link works a second time. */
+  function routeFromHash() {
+    var tab = location.hash.replace("#", "");
+    if (tab !== "pairs" && tab !== "dates" && tab !== "watch") return "";
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* the tab still opens */ }
+    return tab;
+  }
+  function openRoute(tab) {
+    if (tab !== "pairs" && tab !== "dates" && tab !== "watch") return;
+    goTab(tab, S.screen === "app" && !!S.board);
+    if (signedInView() && Date.now() - lastTry > 3000) loadBoard();
+  }
+  window.addEventListener("hashchange", function () { openRoute(routeFromHash()); });
+
   /* ---------- boot ---------- */
   function boot() {
-    var hash = location.hash.replace("#", "");
-    if (hash === "dates" || hash === "watch") S.tab = hash;
+    var tab = routeFromHash();
+    if (tab) S.tab = tab;
     S.screen = "gate"; S.gate = { kind: "loading", message: "" };
     render();
     if (!initAuth()) { toSignin(""); setSigninMsg("The sign-in library didn’t load. Check your connection, then close and reopen Tandem.", true); return; }
@@ -1818,6 +2116,8 @@ var UNITED_HOST = "www.united.com", SA_HOST = "seats.aero";
       if (!hadController) { hadController = true; return; }
       toast("Tandem was updated", "Close and reopen the app to use the new version.");
     });
+    // A tapped notification, when the app is already open: the worker names the tab to show.
+    navigator.serviceWorker.addEventListener("message", function (e) { var d = obj(e.data); if (d.tandem === "route") openRoute(str(d.tab)); });
     window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
   }
 })();

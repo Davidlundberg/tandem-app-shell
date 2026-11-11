@@ -2,6 +2,7 @@
   "name": "Tandem",
   "short_name": "Tandem",
   "description": "Award seats for two, watched from the cloud.",
+  "id": "/tandem-app-shell/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
